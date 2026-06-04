@@ -107,6 +107,25 @@ export function clearOverride(key) {
   delete all[key]
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
 }
+export function clearAllOverrides() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+export function overrideCount() {
+  return Object.keys(loadOverrides()).length
+}
+export function exportOverrides() {
+  return JSON.stringify(loadOverrides(), null, 2)
+}
+// Merge imported overrides into storage. Returns how many spots were imported.
+export function importOverrides(json, { merge = true } = {}) {
+  const incoming = JSON.parse(json)
+  if (typeof incoming !== 'object' || incoming === null || Array.isArray(incoming)) {
+    throw new Error('Invalid ranges file')
+  }
+  const base = merge ? loadOverrides() : {}
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...base, ...incoming }))
+  return Object.keys(incoming).length
+}
 
 // Stable key for an override entry.
 export function rangeKey(format, hero, context) {

@@ -221,3 +221,7 @@ code { background: var(--elev); padding: 1px 6px; border-radius: 5px; color: var
 }
 .field textarea:focus, .edit-controls select:focus { outline: none; border-color: var(--line-strong); }
 .edit-actions { display: flex; gap: 10px; }
+.manage-row { display: flex; flex-direction: column; gap: 10px; }
+.manage-row .muted { font-size: 12.5px; }
+.ghost.danger:hover:not(:disabled) { color: var(--raise); border-color: var(--raise); }
+.ghost:disabled { opacity: .4; cursor: default; }

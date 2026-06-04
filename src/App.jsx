@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { FORMATS } from './poker/positions.js'
 import { RANKS, cardsToHand, comboCount, expandRange } from './poker/hands.js'
 import { deriveContext, describeAction, deriveFollowup } from './poker/scenario.js'
-import { getStrategy, saveOverride, clearOverride, rangeKey, rangeStats } from './poker/ranges.js'
+import {
+  getStrategy, saveOverride, clearOverride, rangeKey, rangeStats,
+  exportOverrides, importOverrides, clearAllOverrides, overrideCount,
+} from './poker/ranges.js'
 import RangeGrid, { StrategyBar, COLORS } from './components/RangeGrid.jsx'
 import PokerTable from './components/PokerTable.jsx'
 import { LangContext, LANGS, translate, useLang } from './i18n.js'
@@ -432,6 +435,9 @@ function EditRanges({ format }) {
   const [hero, setHero] = useState(seats[0])
   const [ctxType, setCtxType] = useState('RFI')
   const [raiser, setRaiser] = useState(seats[1])
+  const [rev, setRev] = useState(0)
+  const fileRef = useRef(null)
+  const savedCount = useMemo(() => overrideCount(), [rev])
 
   if (!seats.includes(hero)) setHero(seats[0])
 
@@ -464,15 +470,52 @@ function EditRanges({ format }) {
     return m
   }, [raiseStr, callStr, sit])
 
+  function reloadStrings() {
+    const fresh = getStrategy(format, hero, context)
+    setRaiseStr(fresh.raiseStr)
+    setCallStr(fresh.callStr)
+  }
   function save() {
     saveOverride(targetKey, { raise: sit.raise ? raiseStr : '', call: sit.call ? callStr : '' })
+    setRev((v) => v + 1)
     alert(t('edit.saved'))
   }
   function reset() {
     clearOverride(targetKey)
-    const fresh = getStrategy(format, hero, context)
-    setRaiseStr(fresh.raiseStr)
-    setCallStr(fresh.callStr)
+    reloadStrings()
+    setRev((v) => v + 1)
+  }
+  function doExport() {
+    const blob = new Blob([exportOverrides()], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'poker-caller-ranges.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  function doImport(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-importing the same file later
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const n = importOverrides(String(reader.result))
+        reloadStrings()
+        setRev((v) => v + 1)
+        alert(t('edit.imported', { n }))
+      } catch {
+        alert(t('edit.importError'))
+      }
+    }
+    reader.readAsText(file)
+  }
+  function doResetAll() {
+    if (!confirm(t('edit.resetAllConfirm'))) return
+    clearAllOverrides()
+    reloadStrings()
+    setRev((v) => v + 1)
   }
 
   return (
@@ -521,6 +564,17 @@ function EditRanges({ format }) {
           </>
         )}
         <p className="hint">{t('edit.notation')} <code>22+</code>, <code>A2s+</code>, <code>KTo+</code>, <code>T9s</code>, <code>A5s-A2s</code></p>
+
+        <h2>{t('edit.manage')}</h2>
+        <div className="manage-row">
+          <span className="muted">{t('edit.savedCount', { n: savedCount })}</span>
+          <div className="edit-actions">
+            <button className="ghost" onClick={doExport} disabled={savedCount === 0}>{t('edit.export')}</button>
+            <button className="ghost" onClick={() => fileRef.current?.click()}>{t('edit.import')}</button>
+            <button className="ghost danger" onClick={doResetAll} disabled={savedCount === 0}>{t('edit.resetAll')}</button>
+          </div>
+          <input ref={fileRef} type="file" accept="application/json,.json" onChange={doImport} hidden />
+        </div>
       </section>
 
       <section className="panel">
