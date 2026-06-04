@@ -37,7 +37,7 @@ export const RFI = {
 export const MTT_RFI = {
   '9max': {
     '75': {
-      UTG: '66+, A3s+, K9s+, Q9s+, AJo+, KQo',
+      UTG: '66+, A3s+, K9s+, Q9s+, JTs, T9s, AJo+, KQo',
       'UTG+1': '66+, A3s+, K8s+, Q9s+, J9s+, T9s, 98s, ATo+',
       'UTG+2': '44+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 76s, ATo+, KTo+',
       LJ: '33+, A2s+, K6s+, Q9s+, J8s+, T8s+, 98s, 87s, 76s, A9o+, KTo+, QTo+',
