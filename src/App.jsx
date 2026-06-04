@@ -28,6 +28,19 @@ function dedupeCard(card, other) {
 const ACTION_COLOR = COLORS
 const GUESS_TO_ACT = { R: 'raise', C: 'call', F: 'fold' }
 
+// Editable situations. side = where the opponent (raiser) sits relative to hero.
+const SITUATIONS = [
+  { key: 'RFI',          side: null,     raise: true,  call: false, raiseLabel: 'edit.range.open' },
+  { key: 'vsRFI',        side: 'before', raise: true,  call: true,  raiseLabel: 'edit.raiseRange' },
+  { key: 'vs3betOpener', side: 'after',  raise: true,  call: true,  raiseLabel: 'edit.range.4bet' },
+  { key: 'vs4bet',       side: 'before', raise: true,  call: true,  raiseLabel: 'edit.range.5bet' },
+  { key: 'vs5bet',       side: 'after',  raise: false, call: true,  raiseLabel: null },
+]
+const SIT_LABEL = {
+  RFI: 'edit.sit.rfi', vsRFI: 'edit.sit.vsRFI', vs3betOpener: 'edit.sit.vs3bet',
+  vs4bet: 'edit.sit.vs4bet', vs5bet: 'edit.sit.vs5bet',
+}
+
 const emptyActions = () => ({})
 
 export default function App() {
@@ -418,14 +431,20 @@ function EditRanges({ format }) {
   const seats = FORMATS[format]
   const [hero, setHero] = useState(seats[0])
   const [ctxType, setCtxType] = useState('RFI')
-  const [raiser, setRaiser] = useState(seats[0])
+  const [raiser, setRaiser] = useState(seats[1])
 
   if (!seats.includes(hero)) setHero(seats[0])
 
-  const context = ctxType === 'RFI'
-    ? { type: 'RFI', raiser: null, callers: [], supported: true }
-    : { type: 'vsRFI', raiser, callers: [], supported: true }
+  const sit = SITUATIONS.find((s) => s.key === ctxType) || SITUATIONS[0]
+  const heroIdx = seats.indexOf(hero)
+  const raiserOptions = sit.side === 'before' ? seats.filter((_, i) => i < heroIdx)
+    : sit.side === 'after' ? seats.filter((_, i) => i > heroIdx)
+    : []
+  const needsRaiser = sit.side !== null
+  const applicable = !needsRaiser || raiserOptions.length > 0
+  if (needsRaiser && raiserOptions.length && !raiserOptions.includes(raiser)) setRaiser(raiserOptions[0])
 
+  const context = { type: ctxType, raiser: needsRaiser ? raiser : null, callers: [], supported: true }
   const strat = getStrategy(format, hero, context)
   const [raiseStr, setRaiseStr] = useState(strat.raiseStr)
   const [callStr, setCallStr] = useState(strat.callStr)
@@ -440,13 +459,13 @@ function EditRanges({ format }) {
 
   const liveMap = useMemo(() => {
     const m = {}
-    for (const h of expandRange(raiseStr)) m[h] = 'R'
-    for (const h of expandRange(callStr)) if (!m[h]) m[h] = 'C'
+    if (sit.raise) for (const h of expandRange(raiseStr)) m[h] = 'R'
+    if (sit.call) for (const h of expandRange(callStr)) if (!m[h]) m[h] = 'C'
     return m
-  }, [raiseStr, callStr])
+  }, [raiseStr, callStr, sit])
 
   function save() {
-    saveOverride(targetKey, { raise: raiseStr, call: callStr })
+    saveOverride(targetKey, { raise: sit.raise ? raiseStr : '', call: sit.call ? callStr : '' })
     alert(t('edit.saved'))
   }
   function reset() {
@@ -469,30 +488,38 @@ function EditRanges({ format }) {
           </label>
           <label>{t('edit.situation')}
             <select value={ctxType} onChange={(e) => setCtxType(e.target.value)}>
-              <option value="RFI">{t('edit.sit.rfi')}</option>
-              <option value="vsRFI">{t('edit.sit.vsRFI')}</option>
+              {SITUATIONS.map((s) => <option key={s.key} value={s.key}>{t(SIT_LABEL[s.key])}</option>)}
             </select>
           </label>
-          {ctxType === 'vsRFI' && (
+          {needsRaiser && applicable && (
             <label>{t('edit.raiser')}
               <select value={raiser} onChange={(e) => setRaiser(e.target.value)}>
-                {seats.filter((s) => seats.indexOf(s) < seats.indexOf(hero)).map((s) => <option key={s}>{s}</option>)}
+                {raiserOptions.map((s) => <option key={s}>{s}</option>)}
               </select>
             </label>
           )}
         </div>
-        <label className="field">{t('edit.raiseRange')}
-          <textarea value={raiseStr} onChange={(e) => setRaiseStr(e.target.value)} rows={3} />
-        </label>
-        {ctxType !== 'RFI' && (
-          <label className="field">{t('edit.callRange')}
-            <textarea value={callStr} onChange={(e) => setCallStr(e.target.value)} rows={3} />
-          </label>
+
+        {!applicable ? (
+          <div className="banner">{t('edit.naSpot')}</div>
+        ) : (
+          <>
+            {sit.raise && (
+              <label className="field">{t(sit.raiseLabel)}
+                <textarea value={raiseStr} onChange={(e) => setRaiseStr(e.target.value)} rows={3} />
+              </label>
+            )}
+            {sit.call && (
+              <label className="field">{t('edit.callRange')}
+                <textarea value={callStr} onChange={(e) => setCallStr(e.target.value)} rows={3} />
+              </label>
+            )}
+            <div className="edit-actions">
+              <button className="primary" onClick={save}>{t('edit.save')}</button>
+              <button className="ghost" onClick={reset}>{t('edit.reset')}</button>
+            </div>
+          </>
         )}
-        <div className="edit-actions">
-          <button className="primary" onClick={save}>{t('edit.save')}</button>
-          <button className="ghost" onClick={reset}>{t('edit.reset')}</button>
-        </div>
         <p className="hint">{t('edit.notation')} <code>22+</code>, <code>A2s+</code>, <code>KTo+</code>, <code>T9s</code>, <code>A5s-A2s</code></p>
       </section>
 
