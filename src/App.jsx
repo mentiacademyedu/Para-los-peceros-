@@ -61,6 +61,16 @@ function loadLog() {
 }
 function saveLog(arr) { localStorage.setItem(LOG_KEY, JSON.stringify(arr.slice(0, 100))) }
 
+// Trainer all-time accuracy per situation type (localStorage).
+const STATS_KEY = 'caller.stats.v1'
+const STAT_ORDER = ['RFI', 'vsRFI', 'multiway', 'vs3betOpener']
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {} } catch { return {} }
+}
+function saveStats(s) { localStorage.setItem(STATS_KEY, JSON.stringify(s)) }
+// % thresholds → color (leak finder).
+function pctColor(p) { return p >= 80 ? COLORS.C : p >= 60 ? '#d9b878' : COLORS.R }
+
 const emptyActions = () => ({})
 
 export default function App() {
@@ -368,6 +378,7 @@ function Trainer({ format }) {
   const [guess, setGuess] = useState(null)
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [log, setLog] = useState(loadLog)
+  const [stats, setStats] = useState(loadStats)
 
   const [lastFormat, setLastFormat] = useState(format)
   if (lastFormat !== format) {
@@ -390,6 +401,12 @@ function Trainer({ format }) {
     if (revealed) return
     setGuess(a)
     setScore((s) => ({ correct: s.correct + (a === correct ? 1 : 0), total: s.total + 1 }))
+    setStats((prev) => {
+      const cur = prev[node.type] || { correct: 0, total: 0 }
+      const next = { ...prev, [node.type]: { correct: cur.correct + (a === correct ? 1 : 0), total: cur.total + 1 } }
+      saveStats(next)
+      return next
+    })
     if (a !== correct) {
       const entry = {
         format, hero: deal.hero, type: node.type, hand,
@@ -400,6 +417,7 @@ function Trainer({ format }) {
   }
   function next() { setDeal(makeDeal(format)); setGuess(null) }
   function clearLog() { setLog([]); localStorage.removeItem(LOG_KEY) }
+  function clearStats() { setStats({}); localStorage.removeItem(STATS_KEY) }
 
   const options = node.type === 'RFI' ? ['R', 'F'] : ['R', 'C', 'F']
 
@@ -474,6 +492,28 @@ function Trainer({ format }) {
         {revealed && <StrategyBar stats={rangeStats(strat.map)} />}
         <RangeGrid map={strat.map} highlight={hand} hideFills={!revealed} />
         {!revealed && <p className="hint">{t('trainer.hidden')}</p>}
+
+        {STAT_ORDER.some((ty) => stats[ty]) && (
+          <div className="stats">
+            <div className="mistakes-head">
+              <h2>{t('trainer.accuracy')}</h2>
+              <button className="ghost" onClick={clearStats}>{t('trainer.clearLog')}</button>
+            </div>
+            <ul className="stats-list">
+              {STAT_ORDER.filter((ty) => stats[ty]).map((ty) => {
+                const s = stats[ty]
+                const pct = Math.round((100 * s.correct) / s.total)
+                return (
+                  <li key={ty}>
+                    <span className="st-name">{t(SIT_LABEL[ty])}</span>
+                    <span className="st-bar"><i style={{ width: `${pct}%`, background: pctColor(pct) }} /></span>
+                    <span className="st-num">{s.correct}/{s.total} · {pct}%</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
       </section>
     </div>
   )

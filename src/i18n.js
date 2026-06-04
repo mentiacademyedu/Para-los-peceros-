@@ -52,6 +52,7 @@ const STRINGS = {
     'trainer.clearLog': 'Clear',
     'trainer.youPicked': 'you',
     'trainer.solver': 'solver',
+    'trainer.accuracy': 'Accuracy by spot',
 
     'edit.title': 'Edit a range',
     'edit.hint': 'Paste your own solver output as poker notation. Saved locally in your browser.',
@@ -155,6 +156,7 @@ const STRINGS = {
     'trainer.clearLog': 'Limpiar',
     'trainer.youPicked': 'tú',
     'trainer.solver': 'solver',
+    'trainer.accuracy': 'Precisión por spot',
 
     'edit.title': 'Editar un rango',
     'edit.hint': 'Pega tu propio output del solver en notación de poker. Se guarda localmente en tu navegador.',

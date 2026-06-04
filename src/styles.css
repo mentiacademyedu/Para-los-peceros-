@@ -224,6 +224,15 @@ code { background: var(--elev); padding: 1px 6px; border-radius: 5px; color: var
 .m-verdict { display: inline-flex; gap: 7px; align-items: center; font-weight: 700; font-size: 11px; white-space: nowrap; }
 .m-arrow { color: var(--faint); font-weight: 400; }
 
+/* accuracy stats */
+.stats { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.stats-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.stats-list li { display: grid; grid-template-columns: 1fr 90px auto; align-items: center; gap: 12px; font-size: 12.5px; }
+.st-name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-bar { height: 6px; border-radius: 20px; background: var(--bg2); overflow: hidden; }
+.st-bar i { display: block; height: 100%; border-radius: 20px; transition: width .2s; }
+.st-num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+
 /* ---- edit ---- */
 .edit-controls { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .edit-controls label, .field { display: flex; flex-direction: column; gap: 6px; font-size: 10.5px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
