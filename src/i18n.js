@@ -61,9 +61,11 @@ const STRINGS = {
     'edit.sit.vs3bet': 'You open, face 3-bet',
     'edit.sit.vs4bet': 'You 3-bet, face 4-bet',
     'edit.sit.vs5bet': 'You 4-bet, face 5-bet jam',
+    'edit.sit.squeeze': 'You face an open + caller (squeeze)',
     'edit.range.open': 'Open range',
     'edit.range.4bet': '4-bet range',
     'edit.range.5bet': '5-bet (jam) range',
+    'edit.range.squeeze': 'Squeeze range',
     'edit.naSpot': 'This situation doesn’t apply to that position.',
     'edit.manage': 'Your saved ranges',
     'edit.savedCount': '{n} custom spots saved',
@@ -76,7 +78,7 @@ const STRINGS = {
 
     'note.limpFold': 'Treating limps as fold-equivalent for the RFI baseline.',
     'note.bbLimp': 'Limped pot — BB checks its option. Not modelled; use judgment.',
-    'note.multiway': 'Multiway: {raiser} raised, {callers} called. Baseline uses the heads-up vs-open range — tighten in practice (squeeze dynamics).',
+    'note.multiway': 'Squeeze spot: {raiser} opened, {callers} called. Approximate squeeze / overcall baseline.',
     'note.vs3bet': 'Facing a 3-bet+. Not yet modelled (Phase 2). No reliable range shown.',
 
     'fu.3bet': '{who} 3-bet you. Facing a 3-bet isn’t modelled yet (Phase 2) — no range shown.',
@@ -97,6 +99,8 @@ const STRINGS = {
     'analyze.vs4bet': 'If you 3-bet and they 4-bet',
     'title.vs4betPos': '{hero} vs {raiser} 4-bet',
     'action.R5': '5-BET',
+    'action.Rsq': 'SQUEEZE',
+    'title.squeeze': '{hero} squeeze vs {raiser} open + caller',
   },
   es: {
     'brand.sub': 'Simulador',
@@ -156,9 +160,11 @@ const STRINGS = {
     'edit.sit.vs3bet': 'Abres, te hacen 3-bet',
     'edit.sit.vs4bet': 'Haces 3-bet, te hacen 4-bet',
     'edit.sit.vs5bet': 'Haces 4-bet, te van all-in',
+    'edit.sit.squeeze': 'Enfrentas apertura + pago (squeeze)',
     'edit.range.open': 'Rango de apertura',
     'edit.range.4bet': 'Rango de 4-bet',
     'edit.range.5bet': 'Rango de 5-bet (all-in)',
+    'edit.range.squeeze': 'Rango de squeeze',
     'edit.naSpot': 'Esta situación no aplica a esa posición.',
     'edit.manage': 'Tus rangos guardados',
     'edit.savedCount': '{n} spots personalizados guardados',
@@ -171,7 +177,7 @@ const STRINGS = {
 
     'note.limpFold': 'Los limps se tratan como fold para la base RFI.',
     'note.bbLimp': 'Bote con limp — BB pasa su opción. No modelado; usa criterio.',
-    'note.multiway': 'Multiway: {raiser} subió, {callers} pagó. La base usa el rango heads-up vs apertura — ajústalo más fuerte en la práctica (dinámica de squeeze).',
+    'note.multiway': 'Spot de squeeze: {raiser} abrió, {callers} pagó. Base aproximada de squeeze / overcall.',
     'note.vs3bet': 'Frente a un 3-bet+. Aún no modelado (Fase 2). No se muestra un rango confiable.',
 
     'fu.3bet': '{who} te hizo 3-bet. Enfrentar un 3-bet aún no está modelado (Fase 2) — sin rango.',
@@ -192,6 +198,8 @@ const STRINGS = {
     'analyze.vs4bet': 'Si haces 3-bet y te hacen 4-bet',
     'title.vs4betPos': '{hero} vs 4-bet de {raiser}',
     'action.R5': '5-BET',
+    'action.Rsq': 'SQUEEZE',
+    'title.squeeze': '{hero} squeeze vs apertura de {raiser} + pago',
   },
 }
 

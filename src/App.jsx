@@ -38,10 +38,11 @@ const SITUATIONS = [
   { key: 'vs3betOpener', side: 'after',  raise: true,  call: true,  raiseLabel: 'edit.range.4bet' },
   { key: 'vs4bet',       side: 'before', raise: true,  call: true,  raiseLabel: 'edit.range.5bet' },
   { key: 'vs5bet',       side: 'after',  raise: false, call: true,  raiseLabel: null },
+  { key: 'multiway',     side: 'before', raise: true,  call: true,  raiseLabel: 'edit.range.squeeze' },
 ]
 const SIT_LABEL = {
   RFI: 'edit.sit.rfi', vsRFI: 'edit.sit.vsRFI', vs3betOpener: 'edit.sit.vs3bet',
-  vs4bet: 'edit.sit.vs4bet', vs5bet: 'edit.sit.vs5bet',
+  vs4bet: 'edit.sit.vs4bet', vs5bet: 'edit.sit.vs5bet', multiway: 'edit.sit.squeeze',
 }
 
 const emptyActions = () => ({})
@@ -156,7 +157,9 @@ function Analyze({ format }) {
         {context.supported ? (
           <div className="verdict">
             <div className="verdict-hand">{hand}</div>
-            <div className="verdict-action" style={{ color: ACTION_COLOR[action] }}>{t('action.' + action)}</div>
+            <div className="verdict-action" style={{ color: ACTION_COLOR[action] }}>
+              {action === 'R' && context.type === 'multiway' ? t('action.Rsq') : t('action.' + action)}
+            </div>
             <div className="verdict-ctx">{title}</div>
           </div>
         ) : (
@@ -295,20 +298,30 @@ function makeDeal(format) {
   let hero, heroAction = null, node
   const actions = {}
 
-  if (roll < 0.34) {
+  if (roll < 0.28) {
     // RFI — folded to hero (BB never opens)
     const candidates = seats.filter((s) => s !== 'BB')
     hero = candidates[randInt(candidates.length)]
     const heroIdx = seats.indexOf(hero)
     seats.slice(0, heroIdx).forEach((p) => { actions[p] = 'fold' })
     node = { type: 'RFI', raiser: null }
-  } else if (roll < 0.67) {
+  } else if (roll < 0.52) {
     // vsRFI — one raiser before hero
     const heroIdx = 1 + randInt(seats.length - 1)
     hero = seats[heroIdx]
     const raiserIdx = randInt(heroIdx)
     seats.slice(0, heroIdx).forEach((p, i) => { actions[p] = i === raiserIdx ? 'raise' : 'fold' })
     node = { type: 'vsRFI', raiser: seats[raiserIdx] }
+  } else if (roll < 0.74) {
+    // multiway squeeze — an opener then a caller, both before hero
+    const heroIdx = 2 + randInt(seats.length - 2)
+    hero = seats[heroIdx]
+    const raiserIdx = randInt(heroIdx - 1)
+    const callerIdx = raiserIdx + 1 + randInt(heroIdx - 1 - raiserIdx)
+    seats.slice(0, heroIdx).forEach((p, i) => {
+      actions[p] = i === raiserIdx ? 'raise' : i === callerIdx ? 'call' : 'fold'
+    })
+    node = { type: 'multiway', raiser: seats[raiserIdx] }
   } else {
     // vs3betOpener — hero opens, a seat behind 3-bets
     const candidates = seats.filter((s) => s !== 'BB')
@@ -353,7 +366,12 @@ function Trainer({ format }) {
   const correct = strat.map[hand] || 'F'
   const revealed = guess !== null
   const title = t(strat.titleKey, strat.titleParams)
-  const label = (a) => (isVs3bet && a === 'R' ? t('action.R4') : t('action.' + a))
+  const label = (a) => {
+    if (a !== 'R') return t('action.' + a)
+    if (node.type === 'vs3betOpener') return t('action.R4')
+    if (node.type === 'multiway') return t('action.Rsq')
+    return t('action.R')
+  }
   const tableHeroAction = isVs3bet ? 'raise' : (revealed ? GUESS_TO_ACT[guess] : null)
 
   function answer(a) {

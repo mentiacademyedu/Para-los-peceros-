@@ -74,6 +74,25 @@ const VS_3BET_BASE = {
   },
 }
 
+// ---- squeeze (an opener + at least one caller before hero) ---------------
+// Keyed by the OPENER's bucket + whether hero is in position vs the opener.
+// raise = squeeze (3-bet over the field), call = overcall. Value-heavy with a
+// few blocker bluffs; overcalls favor suited/connected hands. Approximate.
+const SQUEEZE_BASE = {
+  EARLY: {
+    IP:  { squeeze: 'QQ+, AKs, AKo, A5s', call: 'JJ-66, AQs, AJs, KQs, QJs, JTs, T9s, 98s' },
+    OOP: { squeeze: 'QQ+, AKs, AKo', call: 'JJ-88, AQs, KQs, QJs, JTs' },
+  },
+  MID: {
+    IP:  { squeeze: 'TT+, AQs+, AKo, A5s, A4s', call: '99-22, AJs, ATs, KQs, KJs, QJs, JTs, T9s, 98s, 87s' },
+    OOP: { squeeze: 'JJ+, AQs+, AKo, A5s', call: 'TT-66, AQs, AJs, KQs, QJs, JTs' },
+  },
+  LATE: {
+    IP:  { squeeze: '99+, ATs+, A5s, A4s, KJs+, QJs, AJo+, KQo', call: '88-22, KTs, QTs, JTs, T9s, 98s, 87s, 76s' },
+    OOP: { squeeze: 'TT+, AJs+, A5s, KQs, AQo+', call: '99-22, ATs, KJs, QJs, JTs, T9s' },
+  },
+}
+
 // ---- vs-4-bet (you 3-bet, the opener 4-bets back): 5-bet jam / call / fold -
 // Keyed by the 4-bettor's (opener's) bucket — tighter 4-bettors get more respect.
 const VS_4BET_BY_OPENER = {
@@ -134,6 +153,7 @@ export function rangeKey(format, hero, context) {
   if (context.type === 'vs3betOpener') return `${format}|vs3betOpener|${hero}|${context.raiser}`
   if (context.type === 'vs4bet') return `${format}|vs4bet|${hero}|${context.raiser}`
   if (context.type === 'vs5bet') return `${format}|vs5bet|${hero}|${context.raiser}`
+  if (context.type === 'multiway' && context.raiser) return `${format}|multiway|${hero}|${context.raiser}`
   return `${format}|${context.type}|${hero}`
 }
 
@@ -185,8 +205,15 @@ export function getStrategy(format, hero, context) {
     callStr = VS_5BET_BY_JAMMER[bucket] || VS_5BET_BY_JAMMER.MID
     raiseStr = ''
     approx = true
+  } else if (context.type === 'multiway' && context.raiser) {
+    // squeeze spot: an opener plus at least one caller before hero.
+    const bucket = positionBucket(format, context.raiser)
+    const ip = heroIsIP(format, hero, context.raiser) ? 'IP' : 'OOP'
+    const b = (SQUEEZE_BASE[bucket] || SQUEEZE_BASE.MID)[ip]
+    raiseStr = b.squeeze; callStr = b.call
+    approx = true
   } else {
-    // cold vs3bet / multiway not yet modelled
+    // cold vs3bet / BB-limp multiway not yet modelled
     approx = true
   }
 
@@ -197,7 +224,10 @@ export function getStrategy(format, hero, context) {
   else if (context.type === 'vs4bet') { titleKey = 'title.vs4betPos'; titleParams = { hero, raiser: context.raiser } }
   else if (context.type === 'vs5bet') { titleKey = 'title.vs5bet'; titleParams = { hero } }
   else if (context.type === 'vs3bet') { titleKey = 'title.vs3bet'; titleParams = { hero } }
-  else if (context.type === 'multiway') { titleKey = 'title.multiway'; titleParams = { hero } }
+  else if (context.type === 'multiway') {
+    if (context.raiser) { titleKey = 'title.squeeze'; titleParams = { hero, raiser: context.raiser } }
+    else { titleKey = 'title.multiway'; titleParams = { hero } }
+  }
 
   const raiseSet = expandRange(raiseStr)
   const callSet = expandRange(callStr)
