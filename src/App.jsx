@@ -119,7 +119,7 @@ function Analyze({ format }) {
         <div className="action-line">{t('analyze.actionSoFar')} <b>{actionLine}</b></div>
 
         {context.supported ? (
-          <div className="verdict" style={{ borderColor: ACTION_COLOR[action] }}>
+          <div className="verdict">
             <div className="verdict-hand">{hand}</div>
             <div className="verdict-action" style={{ color: ACTION_COLOR[action] }}>{t('action.' + action)}</div>
             <div className="verdict-ctx">{title}</div>
@@ -289,7 +289,6 @@ function Trainer({ format }) {
               <button
                 key={a}
                 className={`big-btn ${revealed && a === correct ? 'right' : ''} ${revealed && a === guess && a !== correct ? 'wrong' : ''}`}
-                style={{ borderColor: ACTION_COLOR[a] }}
                 onClick={() => answer(a)}
                 disabled={revealed}
               >{t('action.' + a)}</button>
