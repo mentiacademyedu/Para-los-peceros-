@@ -74,6 +74,15 @@ const VS_3BET_BASE = {
   },
 }
 
+// ---- vs-5-bet (you 4-bet as opener, face an all-in jam): call or fold -----
+// Keyed by the jammer's (3-bettor's) bucket — wider jam ranges => call wider.
+const VS_5BET_BY_JAMMER = {
+  EARLY: 'KK+, AKs',
+  MID: 'KK+, AKs',
+  LATE: 'QQ+, AKs, AKo',
+  BLIND: 'QQ+, AKs, AKo',
+}
+
 const STORAGE_KEY = 'caller.rangeOverrides.v1'
 
 export function loadOverrides() {
@@ -95,6 +104,7 @@ export function rangeKey(format, hero, context) {
   if (context.type === 'RFI') return `${format}|RFI|${hero}`
   if (context.type === 'vsRFI') return `${format}|vsRFI|${hero}|${context.raiser}`
   if (context.type === 'vs3betOpener') return `${format}|vs3betOpener|${hero}|${context.raiser}`
+  if (context.type === 'vs5bet') return `${format}|vs5bet|${hero}|${context.raiser}`
   return `${format}|${context.type}|${hero}`
 }
 
@@ -134,6 +144,12 @@ export function getStrategy(format, hero, context) {
     const b = (VS_3BET_BASE[bucket] || VS_3BET_BASE.MID)[ip]
     raiseStr = b.fourbet; callStr = b.call
     approx = true
+  } else if (context.type === 'vs5bet') {
+    // hero 4-bet as opener and faces a 5-bet jam: call or fold only.
+    const bucket = positionBucket(format, context.raiser) // the jammer (3-bettor)
+    callStr = VS_5BET_BY_JAMMER[bucket] || VS_5BET_BY_JAMMER.MID
+    raiseStr = ''
+    approx = true
   } else {
     // cold vs3bet / multiway not yet modelled
     approx = true
@@ -143,6 +159,7 @@ export function getStrategy(format, hero, context) {
   let titleKey = 'title.rfi', titleParams = { pos: hero }
   if (context.type === 'vsRFI') { titleKey = 'title.vsRFI'; titleParams = { hero, raiser: context.raiser } }
   else if (context.type === 'vs3betOpener') { titleKey = 'title.vs3betPos'; titleParams = { hero, raiser: context.raiser } }
+  else if (context.type === 'vs5bet') { titleKey = 'title.vs5bet'; titleParams = { hero } }
   else if (context.type === 'vs3bet') { titleKey = 'title.vs3bet'; titleParams = { hero } }
   else if (context.type === 'multiway') { titleKey = 'title.multiway'; titleParams = { hero } }
 

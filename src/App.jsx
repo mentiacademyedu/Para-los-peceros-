@@ -102,6 +102,12 @@ function Analyze({ format }) {
   const strat3 = vs3betCtx ? getStrategy(format, hero, vs3betCtx) : null
   const action3 = strat3 ? (strat3.map[hand] || 'F') : null
 
+  // If 4-betting is the recommended response, also show the vs-5-bet (jam) spot.
+  const strat5 = strat3 && action3 === 'R'
+    ? getStrategy(format, hero, { type: 'vs5bet', raiser: followup.threeBettor })
+    : null
+  const action5 = strat5 ? (strat5.map[hand] || 'F') : null
+
   function setAction(pos, a) { setActions((prev) => ({ ...prev, [pos]: a })) }
   function reset() { setActions(emptyActions()); setHeroAction(null) }
 
@@ -170,6 +176,19 @@ function Analyze({ format }) {
             {strat3.approx && <div className="banner">{t('analyze.approx')}</div>}
             <StrategyBar stats={rangeStats(strat3.map)} />
             <RangeGrid map={strat3.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
+
+            {strat5 && (
+              <div className="vs5bet-sub">
+                <h2>{t('analyze.vs5bet')}</h2>
+                <div className="verdict">
+                  <div className="verdict-hand">{hand}</div>
+                  <div className="verdict-action" style={{ color: ACTION_COLOR[action5] }}>{t('action.' + action5)}</div>
+                  <div className="verdict-ctx">{t(strat5.titleKey, strat5.titleParams)}</div>
+                </div>
+                <StrategyBar stats={rangeStats(strat5.map)} />
+                <RangeGrid map={strat5.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
+              </div>
+            )}
           </div>
         )}
       </section>
