@@ -167,7 +167,7 @@ function Analyze({ format, depth }) {
 
   const hand = cardsToHand(card1, card2)
   const context = useMemo(() => deriveContext(format, hero, actions), [format, hero, actions])
-  const strat = useMemo(() => getStrategy(format, hero, context), [format, hero, context])
+  const strat = useMemo(() => getStrategy(format, hero, context, depth), [format, hero, context, depth.gameType, depth.stackBB])
   const action = strat.map[hand] || 'F'
   const actionLine = describeAction(format, hero, actions, t)
   const followup = useMemo(
@@ -180,18 +180,18 @@ function Analyze({ format, depth }) {
   const vs3betCtx = followup && followup.supported && followup.type === 'vs3bet'
     ? { type: 'vs3betOpener', raiser: followup.threeBettor }
     : null
-  const strat3 = vs3betCtx ? getStrategy(format, hero, vs3betCtx) : null
+  const strat3 = vs3betCtx ? getStrategy(format, hero, vs3betCtx, depth) : null
   const action3 = strat3 ? (strat3.map[hand] || 'F') : null
 
   // If 4-betting is the recommended response, also show the vs-5-bet (jam) spot.
   const strat5 = strat3 && action3 === 'R'
-    ? getStrategy(format, hero, { type: 'vs5bet', raiser: followup.threeBettor })
+    ? getStrategy(format, hero, { type: 'vs5bet', raiser: followup.threeBettor }, depth)
     : null
   const action5 = strat5 ? (strat5.map[hand] || 'F') : null
 
   // If you face an open and 3-betting is recommended, show the vs-4-bet spot.
   const strat4 = context.type === 'vsRFI' && action === 'R'
-    ? getStrategy(format, hero, { type: 'vs4bet', raiser: context.raiser })
+    ? getStrategy(format, hero, { type: 'vs4bet', raiser: context.raiser }, depth)
     : null
   const action4 = strat4 ? (strat4.map[hand] || 'F') : null
 
@@ -452,7 +452,7 @@ function Trainer({ format, depth }) {
   const hand = cardsToHand(deal.card1, deal.card2)
   const node = deal.node
   const isVs3bet = node.type === 'vs3betOpener'
-  const strat = useMemo(() => getStrategy(format, deal.hero, node), [format, deal.hero, node])
+  const strat = useMemo(() => getStrategy(format, deal.hero, node, depth), [format, deal.hero, node, depth.gameType, depth.stackBB])
   const correct = strat.map[hand] || 'F'
   const revealed = guess !== null
   const title = t(strat.titleKey, strat.titleParams)

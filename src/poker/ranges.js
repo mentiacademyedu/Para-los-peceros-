@@ -31,6 +31,49 @@ export const RFI = {
   },
 }
 
+// ---- Tournament (MTT) RFI charts ----------------------------------------
+// Keyed by format -> stack bucket -> position. Buckets are representative
+// effective-stack depths in BB. Fill more buckets as you import data.
+export const MTT_RFI = {
+  '9max': {
+    '75': {
+      UTG: '66+, A3s+, K9s+, Q9s+, AJo+, KQo',
+      'UTG+1': '66+, A3s+, K8s+, Q9s+, J9s+, T9s, 98s, ATo+',
+      'UTG+2': '44+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 76s, ATo+, KTo+',
+      LJ: '33+, A2s+, K6s+, Q9s+, J8s+, T8s+, 98s, 87s, 76s, A9o+, KTo+, QTo+',
+      HJ: '22+, A2s+, K4s+, Q8s+, J8s+, T7s+, 97s+, 87s, 76s, 65s, 54s, A8o+, KTo+, QTo+, JTo',
+      CO: '22+, A2s+, K2s+, Q5s+, J7s+, T6s+, 96s+, 86s+, 75s+, 65s, 54s, A5o+, K9o+, Q9o+, J9o+, T9o',
+      BTN: '22+, A2s+, K2s+, Q2s+, J3s+, T3s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K5o+, Q8o+, J8o+, T7o+, 97o+, 87o',
+      SB: '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J2o+, T3o+, 95o+, 85o+, 75o+, 64o+, 54o',
+    },
+    // Exploitative 100bb 9-max open-raise chart.
+    '100': {
+      UTG: '66+, A9s+, A5s, KTs+, QTs+, JTs, T9s, 98s, AQo+',
+      'UTG+1': '66+, A4s+, K9s+, Q9s+, J9s+, T9s, 98s, AJo+, KQo',
+      'UTG+2': '66+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, 87s, 76s, AJo+, KQo',
+      LJ: '44+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, 87s, 76s, 65s, ATo+, KJo+',
+      HJ: '22+, A2s+, K8s+, Q9s+, J9s+, T9s, 98s, 87s, 76s, 65s, 54s, ATo+, KJo+',
+      CO: '22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, 43s, A9o+, KJo+',
+      BTN: '22+, A2s+, K2s+, Q2s+, J6s+, T6s+, 96s+, 85s+, 75s+, 64s+, 53s+, 43s, 32s, A2o+, K7o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o',
+      SB: '22+, A2s+, K2s+, Q2s+, J2s+, T4s+, 94s+, 84s+, 74s+, 63s+, 53s+, 43s, 32s, A2o+, K2o+, Q2o+, J6o+, T6o+, 96o+, 86o+, 76o',
+    },
+  },
+  '6max': {},
+}
+
+// Map an effective stack (bb) to its MTT chart bucket.
+export function mttBucket(bb) {
+  if (bb <= 12) return '10'
+  if (bb <= 17) return '15'
+  if (bb <= 22) return '20'
+  if (bb <= 27) return '25'
+  if (bb <= 35) return '30'
+  if (bb <= 45) return '40'
+  if (bb <= 62) return '50'
+  if (bb <= 87) return '75'
+  return '100'
+}
+
 // ---- vs-RFI baseline model (hero faces a single raise) -------------------
 // Keyed by raiser bucket + whether hero is in position. raise = 3-bet range,
 // call = flat range. Everything else folds. Approximate, editable.
@@ -146,24 +189,29 @@ export function importOverrides(json, { merge = true } = {}) {
   return Object.keys(incoming).length
 }
 
-// Stable key for an override entry.
-export function rangeKey(format, hero, context) {
-  if (context.type === 'RFI') return `${format}|RFI|${hero}`
-  if (context.type === 'vsRFI') return `${format}|vsRFI|${hero}|${context.raiser}`
-  if (context.type === 'vs3betOpener') return `${format}|vs3betOpener|${hero}|${context.raiser}`
-  if (context.type === 'vs4bet') return `${format}|vs4bet|${hero}|${context.raiser}`
-  if (context.type === 'vs5bet') return `${format}|vs5bet|${hero}|${context.raiser}`
-  if (context.type === 'multiway' && context.raiser) return `${format}|multiway|${hero}|${context.raiser}`
-  return `${format}|${context.type}|${hero}`
+// Stable key for an override entry. MTT spots are bucketed by stack depth.
+export function rangeKey(format, hero, context, depth) {
+  const d = depth && depth.gameType === 'mtt' ? `mtt${mttBucket(depth.stackBB)}|` : ''
+  const c = context
+  let rest
+  if (c.type === 'vsRFI') rest = `vsRFI|${hero}|${c.raiser}`
+  else if (c.type === 'vs3betOpener') rest = `vs3betOpener|${hero}|${c.raiser}`
+  else if (c.type === 'vs4bet') rest = `vs4bet|${hero}|${c.raiser}`
+  else if (c.type === 'vs5bet') rest = `vs5bet|${hero}|${c.raiser}`
+  else if (c.type === 'multiway' && c.raiser) rest = `multiway|${hero}|${c.raiser}`
+  else if (c.type === 'RFI') rest = `RFI|${hero}`
+  else rest = `${c.type}|${hero}`
+  return `${format}|${d}${rest}`
 }
 
 // Resolve the strategy for a (format, hero, context) into a hand -> action map.
 // action is 'R' (raise/3bet), 'C' (call), or 'F' (fold).
 // Returns { map, approx, title, raiseStr, callStr }.
-export function getStrategy(format, hero, context) {
+export function getStrategy(format, hero, context, depth) {
   const overrides = loadOverrides()
-  const key = rangeKey(format, hero, context)
+  const key = rangeKey(format, hero, context, depth)
   const ov = overrides[key]
+  const isMtt = depth && depth.gameType === 'mtt'
 
   let raiseStr = '', callStr = '', approx = false
 
@@ -172,7 +220,9 @@ export function getStrategy(format, hero, context) {
     callStr = ov.call || ''
     approx = false
   } else if (context.type === 'RFI') {
-    raiseStr = RFI[format]?.[hero] || ''
+    // Tournament: use the depth-bucketed chart when we have it; else baseline.
+    const mttChart = isMtt ? MTT_RFI[format]?.[mttBucket(depth.stackBB)]?.[hero] : null
+    raiseStr = mttChart || RFI[format]?.[hero] || ''
     callStr = ''
     approx = false
   } else if (context.type === 'vsRFI') {
