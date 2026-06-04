@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { FORMATS } from './poker/positions.js'
 import { RANKS, cardsToHand, comboCount, expandRange } from './poker/hands.js'
 import { deriveContext, describeAction, deriveFollowup } from './poker/scenario.js'
-import { getStrategy, saveOverride, clearOverride, rangeKey } from './poker/ranges.js'
-import RangeGrid, { Legend } from './components/RangeGrid.jsx'
+import { getStrategy, saveOverride, clearOverride, rangeKey, rangeStats } from './poker/ranges.js'
+import RangeGrid, { StrategyBar, COLORS } from './components/RangeGrid.jsx'
 import PokerTable from './components/PokerTable.jsx'
 
 const SUITS = [
@@ -13,7 +13,7 @@ const SUITS = [
   { s: 'c', sym: '♣', color: '#5ad18a' },
 ]
 const ACTION_NAME = { R: 'RAISE / 3-BET', C: 'CALL', F: 'FOLD' }
-const ACTION_COLOR = { R: '#e2483d', C: '#3aa757', F: '#6b7280' }
+const ACTION_COLOR = COLORS
 
 const emptyActions = () => ({})
 
@@ -135,7 +135,7 @@ function Analyze({ format }) {
         )}
 
         <h2>{strat.title}</h2>
-        <Legend />
+        <StrategyBar stats={rangeStats(strat.map)} />
         <RangeGrid map={strat.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
         <p className="hint">Tip: click any cell to load that hand into your cards.</p>
       </section>
@@ -292,8 +292,8 @@ function Trainer({ format }) {
       <section className="panel">
         <h2>{strat.title}</h2>
         {strat.approx && <div className="banner">⚠ Baseline approximation.</div>}
-        <Legend />
-        <RangeGrid map={revealed ? strat.map : {}} highlight={hand} />
+        {revealed && <StrategyBar stats={rangeStats(strat.map)} />}
+        <RangeGrid map={strat.map} highlight={hand} hideFills={!revealed} />
         {!revealed && <p className="hint">Range hidden until you answer.</p>}
       </section>
     </div>
@@ -397,7 +397,7 @@ function EditRanges({ format }) {
 
       <section className="panel">
         <h2>Live preview</h2>
-        <Legend />
+        <StrategyBar stats={rangeStats(liveMap)} />
         <RangeGrid map={liveMap} />
       </section>
     </div>

@@ -6,7 +6,7 @@
 // clearly flagged as approximate in the UI. Everything is editable/overridable
 // via localStorage so you can paste your own solver outputs per spot.
 
-import { expandRange } from './hands.js'
+import { expandRange, allHands, comboCount } from './hands.js'
 import { positionBucket, heroIsIP } from './positions.js'
 
 // ---- RFI: raise-first-in (folded to hero) -------------------------------
@@ -138,4 +138,18 @@ function titleFor(hero, context) {
 export function actionForHand(format, hero, context, hand) {
   const { map } = getStrategy(format, hero, context)
   return map[hand] || 'F'
+}
+
+// Combo-weighted action distribution for a strategy map (out of 1326 combos).
+export function rangeStats(map) {
+  let R = 0, C = 0, F = 0
+  for (const h of allHands()) {
+    const w = comboCount(h)
+    const a = map[h] || 'F'
+    if (a === 'R') R += w
+    else if (a === 'C') C += w
+    else F += w
+  }
+  const total = R + C + F || 1
+  return { R, C, F, total, pR: (100 * R) / total, pC: (100 * C) / total, pF: (100 * F) / total }
 }
