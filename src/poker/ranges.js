@@ -74,6 +74,15 @@ const VS_3BET_BASE = {
   },
 }
 
+// ---- vs-4-bet (you 3-bet, the opener 4-bets back): 5-bet jam / call / fold -
+// Keyed by the 4-bettor's (opener's) bucket — tighter 4-bettors get more respect.
+const VS_4BET_BY_OPENER = {
+  EARLY: { fivebet: 'KK+, AKs', call: 'QQ' },
+  MID:   { fivebet: 'KK+, AKs, A5s', call: 'QQ, AKo' },
+  LATE:  { fivebet: 'QQ+, AKs, AKo, A5s', call: 'JJ, TT' },
+  BLIND: { fivebet: 'QQ+, AKs, AKo, A5s', call: 'JJ, TT' },
+}
+
 // ---- vs-5-bet (you 4-bet as opener, face an all-in jam): call or fold -----
 // Keyed by the jammer's (3-bettor's) bucket — wider jam ranges => call wider.
 const VS_5BET_BY_JAMMER = {
@@ -104,6 +113,7 @@ export function rangeKey(format, hero, context) {
   if (context.type === 'RFI') return `${format}|RFI|${hero}`
   if (context.type === 'vsRFI') return `${format}|vsRFI|${hero}|${context.raiser}`
   if (context.type === 'vs3betOpener') return `${format}|vs3betOpener|${hero}|${context.raiser}`
+  if (context.type === 'vs4bet') return `${format}|vs4bet|${hero}|${context.raiser}`
   if (context.type === 'vs5bet') return `${format}|vs5bet|${hero}|${context.raiser}`
   return `${format}|${context.type}|${hero}`
 }
@@ -144,6 +154,12 @@ export function getStrategy(format, hero, context) {
     const b = (VS_3BET_BASE[bucket] || VS_3BET_BASE.MID)[ip]
     raiseStr = b.fourbet; callStr = b.call
     approx = true
+  } else if (context.type === 'vs4bet') {
+    // hero 3-bet and the opener 4-bet back: 5-bet jam, call, or fold.
+    const bucket = positionBucket(format, context.raiser) // the 4-bettor (opener)
+    const b = VS_4BET_BY_OPENER[bucket] || VS_4BET_BY_OPENER.MID
+    raiseStr = b.fivebet; callStr = b.call
+    approx = true
   } else if (context.type === 'vs5bet') {
     // hero 4-bet as opener and faces a 5-bet jam: call or fold only.
     const bucket = positionBucket(format, context.raiser) // the jammer (3-bettor)
@@ -159,6 +175,7 @@ export function getStrategy(format, hero, context) {
   let titleKey = 'title.rfi', titleParams = { pos: hero }
   if (context.type === 'vsRFI') { titleKey = 'title.vsRFI'; titleParams = { hero, raiser: context.raiser } }
   else if (context.type === 'vs3betOpener') { titleKey = 'title.vs3betPos'; titleParams = { hero, raiser: context.raiser } }
+  else if (context.type === 'vs4bet') { titleKey = 'title.vs4betPos'; titleParams = { hero, raiser: context.raiser } }
   else if (context.type === 'vs5bet') { titleKey = 'title.vs5bet'; titleParams = { hero } }
   else if (context.type === 'vs3bet') { titleKey = 'title.vs3bet'; titleParams = { hero } }
   else if (context.type === 'multiway') { titleKey = 'title.multiway'; titleParams = { hero } }

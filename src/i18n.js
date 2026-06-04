@@ -79,6 +79,9 @@ const STRINGS = {
     'trainer.vs3betLine': 'You open, {who} 3-bets — your move?',
     'analyze.vs5bet': 'If you 4-bet and get jammed on (5-bet)',
     'title.vs5bet': '{hero} vs 5-bet jam',
+    'analyze.vs4bet': 'If you 3-bet and they 4-bet',
+    'title.vs4betPos': '{hero} vs {raiser} 4-bet',
+    'action.R5': '5-BET',
   },
   es: {
     'brand.sub': 'Simulador',
@@ -156,6 +159,9 @@ const STRINGS = {
     'trainer.vs3betLine': 'Abres, {who} hace 3-bet — ¿tu jugada?',
     'analyze.vs5bet': 'Si haces 4-bet y te van all-in (5-bet)',
     'title.vs5bet': '{hero} vs 5-bet all-in',
+    'analyze.vs4bet': 'Si haces 3-bet y te hacen 4-bet',
+    'title.vs4betPos': '{hero} vs 4-bet de {raiser}',
+    'action.R5': '5-BET',
   },
 }
 
