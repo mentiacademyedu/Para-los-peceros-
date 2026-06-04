@@ -209,6 +209,21 @@ code { background: var(--elev); padding: 1px 6px; border-radius: 5px; color: var
 .result.ok { background: rgba(95,148,104,.12); color: #9fd0a8; }
 .result.bad { background: rgba(199,92,82,.12); color: #e2a39c; }
 
+/* mistake log */
+.mistakes { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.mistakes-head { display: flex; align-items: center; justify-content: space-between; }
+.mistakes-head h2 { margin: 0; }
+.mistakes-head .ghost { margin-top: 0; padding: 4px 10px; font-size: 12px; }
+.mistakes-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.mistakes-list li {
+  display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px;
+  padding: 7px 9px; background: var(--bg2); border-radius: 7px; font-size: 12.5px;
+}
+.m-hand { font-weight: 700; font-variant-numeric: tabular-nums; }
+.m-spot { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-verdict { display: inline-flex; gap: 7px; align-items: center; font-weight: 700; font-size: 11px; white-space: nowrap; }
+.m-arrow { color: var(--faint); font-weight: 400; }
+
 /* ---- edit ---- */
 .edit-controls { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .edit-controls label, .field { display: flex; flex-direction: column; gap: 6px; font-size: 10.5px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }

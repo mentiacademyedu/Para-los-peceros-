@@ -45,6 +45,22 @@ const SIT_LABEL = {
   vs4bet: 'edit.sit.vs4bet', vs5bet: 'edit.sit.vs5bet', multiway: 'edit.sit.squeeze',
 }
 
+// Localized action label, context-aware so a raise reads 4-BET / 5-BET / SQUEEZE.
+function actionLabelFor(t, type, a) {
+  if (a !== 'R') return t('action.' + a)
+  if (type === 'vs3betOpener') return t('action.R4')
+  if (type === 'vs4bet') return t('action.R5')
+  if (type === 'multiway') return t('action.Rsq')
+  return t('action.R')
+}
+
+// Trainer mistake log (localStorage).
+const LOG_KEY = 'caller.mistakes.v1'
+function loadLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY)) || [] } catch { return [] }
+}
+function saveLog(arr) { localStorage.setItem(LOG_KEY, JSON.stringify(arr.slice(0, 100))) }
+
 const emptyActions = () => ({})
 
 export default function App() {
@@ -351,6 +367,7 @@ function Trainer({ format }) {
   const [deal, setDeal] = useState(() => makeDeal(format))
   const [guess, setGuess] = useState(null)
   const [score, setScore] = useState({ correct: 0, total: 0 })
+  const [log, setLog] = useState(loadLog)
 
   const [lastFormat, setLastFormat] = useState(format)
   if (lastFormat !== format) {
@@ -366,20 +383,23 @@ function Trainer({ format }) {
   const correct = strat.map[hand] || 'F'
   const revealed = guess !== null
   const title = t(strat.titleKey, strat.titleParams)
-  const label = (a) => {
-    if (a !== 'R') return t('action.' + a)
-    if (node.type === 'vs3betOpener') return t('action.R4')
-    if (node.type === 'multiway') return t('action.Rsq')
-    return t('action.R')
-  }
+  const label = (a) => actionLabelFor(t, node.type, a)
   const tableHeroAction = isVs3bet ? 'raise' : (revealed ? GUESS_TO_ACT[guess] : null)
 
   function answer(a) {
     if (revealed) return
     setGuess(a)
     setScore((s) => ({ correct: s.correct + (a === correct ? 1 : 0), total: s.total + 1 }))
+    if (a !== correct) {
+      const entry = {
+        format, hero: deal.hero, type: node.type, hand,
+        guess: a, correct, titleKey: strat.titleKey, titleParams: strat.titleParams,
+      }
+      setLog((prev) => { const next = [entry, ...prev].slice(0, 100); saveLog(next); return next })
+    }
   }
   function next() { setDeal(makeDeal(format)); setGuess(null) }
+  function clearLog() { setLog([]); localStorage.removeItem(LOG_KEY) }
 
   const options = node.type === 'RFI' ? ['R', 'F'] : ['R', 'C', 'F']
 
@@ -422,6 +442,28 @@ function Trainer({ format }) {
           <div className={`result ${guess === correct ? 'ok' : 'bad'}`}>
             {guess === correct ? t('trainer.correct') : t('trainer.wrong', { action: label(correct) })}
             <button className="primary" onClick={next}>{t('trainer.next')}</button>
+          </div>
+        )}
+
+        {log.length > 0 && (
+          <div className="mistakes">
+            <div className="mistakes-head">
+              <h2>{t('trainer.mistakes')} ({log.length})</h2>
+              <button className="ghost" onClick={clearLog}>{t('trainer.clearLog')}</button>
+            </div>
+            <ul className="mistakes-list">
+              {log.slice(0, 15).map((m, i) => (
+                <li key={i}>
+                  <span className="m-hand">{m.hand}</span>
+                  <span className="m-spot">{t(m.titleKey, m.titleParams)}</span>
+                  <span className="m-verdict">
+                    <span style={{ color: ACTION_COLOR[m.guess] }}>{actionLabelFor(t, m.type, m.guess)}</span>
+                    <span className="m-arrow">→</span>
+                    <span style={{ color: ACTION_COLOR[m.correct] }}>{actionLabelFor(t, m.type, m.correct)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

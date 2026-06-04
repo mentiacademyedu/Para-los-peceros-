@@ -48,6 +48,10 @@ const STRINGS = {
     'trainer.next': 'Next hand →',
     'trainer.hidden': 'Range hidden until you answer.',
     'trainer.approx': '⚠ Baseline approximation.',
+    'trainer.mistakes': 'Mistakes to review',
+    'trainer.clearLog': 'Clear',
+    'trainer.youPicked': 'you',
+    'trainer.solver': 'solver',
 
     'edit.title': 'Edit a range',
     'edit.hint': 'Paste your own solver output as poker notation. Saved locally in your browser.',
@@ -147,6 +151,10 @@ const STRINGS = {
     'trainer.next': 'Siguiente mano →',
     'trainer.hidden': 'Rango oculto hasta que respondas.',
     'trainer.approx': '⚠ Aproximación base.',
+    'trainer.mistakes': 'Errores para repasar',
+    'trainer.clearLog': 'Limpiar',
+    'trainer.youPicked': 'tú',
+    'trainer.solver': 'solver',
 
     'edit.title': 'Editar un rango',
     'edit.hint': 'Pega tu propio output del solver en notación de poker. Se guarda localmente en tu navegador.',
