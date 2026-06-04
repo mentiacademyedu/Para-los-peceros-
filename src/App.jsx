@@ -7,12 +7,24 @@ import RangeGrid, { StrategyBar, COLORS } from './components/RangeGrid.jsx'
 import PokerTable from './components/PokerTable.jsx'
 import { LangContext, LANGS, translate, useLang } from './i18n.js'
 
+// Four-color deck: spades black, hearts red, diamonds blue, clubs green.
 const SUITS = [
-  { s: 's', sym: '♠', color: '#cfd6e4' },
-  { s: 'h', sym: '♥', color: '#ff6b6b' },
-  { s: 'd', sym: '♦', color: '#5aa9ff' },
-  { s: 'c', sym: '♣', color: '#5ad18a' },
+  { s: 's', sym: '♠', color: '#2a2e37' },
+  { s: 'h', sym: '♥', color: '#e0544a' },
+  { s: 'd', sym: '♦', color: '#3f7fd0' },
+  { s: 'c', sym: '♣', color: '#4f9d63' },
 ]
+
+// Keep the two hole cards from being the identical card: if `card` collides
+// with `other`, shift it to the first suit (a different color) that's free.
+function dedupeCard(card, other) {
+  if (card !== other) return card
+  for (const { s } of SUITS) {
+    const candidate = card[0] + s
+    if (candidate !== other) return candidate
+  }
+  return card
+}
 const ACTION_COLOR = COLORS
 const GUESS_TO_ACT = { R: 'raise', C: 'call', F: 'fold' }
 
@@ -155,8 +167,8 @@ function pickHandIntoCards(hand, setCard1, setCard2) {
 function CardPicker({ card1, card2, onCard1, onCard2 }) {
   return (
     <div className="cards">
-      <CardSelect card={card1} onChange={onCard1} />
-      <CardSelect card={card2} onChange={onCard2} />
+      <CardSelect card={card1} onChange={(c) => onCard1(dedupeCard(c, card2))} />
+      <CardSelect card={card2} onChange={(c) => onCard2(dedupeCard(c, card1))} />
     </div>
   )
 }
