@@ -1,5 +1,8 @@
 # Poker Caller Simulator
 
+Yes i vibecoded this to be fast with it, dont cry i couldnt care less
+Yes the data was checked by humans
+
 A preflop range trainer for studying GTO opening / facing-a-raise decisions.
 Reconstruct hands you played, or drill random spots, for 6-max and 9-max.
 
