@@ -318,27 +318,47 @@ function CardSelect({ card, onChange }) {
 // -------------------- TRAINER (random drills) -----------------------------
 function randInt(n) { return Math.floor(Math.random() * n) }
 
-function makeDeal(format) {
+// Weighted situation pick. weights maps type -> relative weight (default 1).
+function pickType(weights) {
+  const entries = STAT_ORDER.map((ty) => [ty, weights?.[ty] ?? 1])
+  const total = entries.reduce((s, [, w]) => s + w, 0)
+  let r = Math.random() * total
+  for (const [ty, w] of entries) { if ((r -= w) < 0) return ty }
+  return entries[0][0]
+}
+
+// Bias toward low-accuracy spots: lower accuracy -> higher weight. Spots with
+// little data get a normal weight so they still get sampled.
+function weakWeights(stats) {
+  const w = {}
+  for (const ty of STAT_ORDER) {
+    const s = stats[ty]
+    w[ty] = !s || s.total < 3 ? 1 : 0.15 + (1 - s.correct / s.total) * 1.6
+  }
+  return w
+}
+
+function makeDeal(format, weights) {
   const seats = FORMATS[format]
-  const roll = Math.random()
+  const type = pickType(weights)
   let hero, heroAction = null, node
   const actions = {}
 
-  if (roll < 0.28) {
+  if (type === 'RFI') {
     // RFI — folded to hero (BB never opens)
     const candidates = seats.filter((s) => s !== 'BB')
     hero = candidates[randInt(candidates.length)]
     const heroIdx = seats.indexOf(hero)
     seats.slice(0, heroIdx).forEach((p) => { actions[p] = 'fold' })
     node = { type: 'RFI', raiser: null }
-  } else if (roll < 0.52) {
+  } else if (type === 'vsRFI') {
     // vsRFI — one raiser before hero
     const heroIdx = 1 + randInt(seats.length - 1)
     hero = seats[heroIdx]
     const raiserIdx = randInt(heroIdx)
     seats.slice(0, heroIdx).forEach((p, i) => { actions[p] = i === raiserIdx ? 'raise' : 'fold' })
     node = { type: 'vsRFI', raiser: seats[raiserIdx] }
-  } else if (roll < 0.74) {
+  } else if (type === 'multiway') {
     // multiway squeeze — an opener then a caller, both before hero
     const heroIdx = 2 + randInt(seats.length - 2)
     hero = seats[heroIdx]
@@ -379,11 +399,13 @@ function Trainer({ format }) {
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [log, setLog] = useState(loadLog)
   const [stats, setStats] = useState(loadStats)
+  const [focus, setFocus] = useState(false)
+  const weights = focus ? weakWeights(stats) : null
 
   const [lastFormat, setLastFormat] = useState(format)
   if (lastFormat !== format) {
     setLastFormat(format)
-    setDeal(makeDeal(format))
+    setDeal(makeDeal(format, weights))
     setGuess(null)
   }
 
@@ -415,7 +437,13 @@ function Trainer({ format }) {
       setLog((prev) => { const next = [entry, ...prev].slice(0, 100); saveLog(next); return next })
     }
   }
-  function next() { setDeal(makeDeal(format)); setGuess(null) }
+  function next() { setDeal(makeDeal(format, weights)); setGuess(null) }
+  function toggleFocus() {
+    const nf = !focus
+    setFocus(nf)
+    setDeal(makeDeal(format, nf ? weakWeights(stats) : null))
+    setGuess(null)
+  }
   function clearLog() { setLog([]); localStorage.removeItem(LOG_KEY) }
   function clearStats() { setStats({}); localStorage.removeItem(STATS_KEY) }
 
@@ -425,8 +453,11 @@ function Trainer({ format }) {
     <div className="layout">
       <section className="panel">
         <h2>{t('trainer.drill')}</h2>
-        <div className="score">{t('trainer.score')} <b>{score.correct}/{score.total}</b>
-          {score.total > 0 && <span className="muted"> ({Math.round((100 * score.correct) / score.total)}%)</span>}
+        <div className="score-row">
+          <div className="score">{t('trainer.score')} <b>{score.correct}/{score.total}</b>
+            {score.total > 0 && <span className="muted"> ({Math.round((100 * score.correct) / score.total)}%)</span>}
+          </div>
+          <button className={`chip ${focus ? 'on' : ''}`} onClick={toggleFocus}>{t('trainer.focusWeak')}</button>
         </div>
 
         <PokerTable

@@ -53,6 +53,7 @@ const STRINGS = {
     'trainer.youPicked': 'you',
     'trainer.solver': 'solver',
     'trainer.accuracy': 'Accuracy by spot',
+    'trainer.focusWeak': 'Focus weak spots',
 
     'edit.title': 'Edit a range',
     'edit.hint': 'Paste your own solver output as poker notation. Saved locally in your browser.',
@@ -157,6 +158,7 @@ const STRINGS = {
     'trainer.youPicked': 'tú',
     'trainer.solver': 'solver',
     'trainer.accuracy': 'Precisión por spot',
+    'trainer.focusWeak': 'Enfocar puntos débiles',
 
     'edit.title': 'Editar un rango',
     'edit.hint': 'Pega tu propio output del solver en notación de poker. Se guarda localmente en tu navegador.',

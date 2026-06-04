@@ -188,8 +188,15 @@ code { background: var(--elev); padding: 1px 6px; border-radius: 5px; color: var
 .primary:hover { opacity: .88; }
 
 /* ---- trainer ---- */
-.score { font-size: 14px; margin-bottom: 16px; color: var(--muted); }
+.score-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.score { font-size: 14px; color: var(--muted); }
 .score b { color: var(--text); font-variant-numeric: tabular-nums; }
+.chip {
+  background: var(--bg2); color: var(--muted); border: 1px solid var(--line);
+  border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; transition: .15s; white-space: nowrap;
+}
+.chip:hover { color: var(--text); border-color: var(--line-strong); }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .drill-q { background: var(--elev); border-radius: var(--radius); padding: 20px; text-align: center; border: 1px solid var(--line); }
 .drill-cards { display: flex; gap: 10px; justify-content: center; margin: 14px 0; }
 .big-card {
