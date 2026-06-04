@@ -1,10 +1,10 @@
 // Derive hero's preflop decision context from the action around the table.
+// Notes are returned as i18n keys (+ params) so the UI can localize them.
 
 import { FORMATS } from './positions.js'
 
 // actions: { [position]: 'fold' | 'call' | 'raise' | null }
-// Returns the context hero faces given who acted BEFORE hero.
-//   { type, raiser, callers, note, supported }
+// Returns { type, raiser, callers, noteKey, noteParams, supported }.
 export function deriveContext(format, hero, actions) {
   const order = FORMATS[format]
   const heroIdx = order.indexOf(hero)
@@ -15,42 +15,30 @@ export function deriveContext(format, hero, actions) {
 
   if (raisers.length === 0) {
     if (hero === 'BB' && callers.length > 0) {
-      return {
-        type: 'multiway', raiser: null, callers,
-        note: 'Limped pot — BB checks its option. Not modelled; use judgment.',
-        supported: false,
-      }
+      return { type: 'multiway', raiser: null, callers, noteKey: 'note.bbLimp', noteParams: null, supported: false }
     }
-    return {
-      type: 'RFI', raiser: null, callers: [],
-      note: callers.length ? 'Treating limps as fold-equivalent for the RFI baseline.' : '',
-      supported: true,
-    }
+    return { type: 'RFI', raiser: null, callers: [], noteKey: callers.length ? 'note.limpFold' : null, noteParams: null, supported: true }
   }
 
   if (raisers.length === 1) {
     const raiser = raisers[0]
     if (callers.length === 0) {
-      return { type: 'vsRFI', raiser, callers: [], note: '', supported: true }
+      return { type: 'vsRFI', raiser, callers: [], noteKey: null, noteParams: null, supported: true }
     }
     return {
       type: 'multiway', raiser, callers,
-      note: `Multiway: ${raiser} raised, ${callers.join(', ')} called. Baseline uses the heads-up vs-open range — tighten in practice (squeeze dynamics).`,
-      supported: true,
+      noteKey: 'note.multiway', noteParams: { raiser, callers: callers.join(', ') }, supported: true,
     }
   }
 
-  // Two or more raises before hero => hero faces a 3-bet (or more).
   return {
     type: 'vs3bet', raiser: raisers[raisers.length - 1], callers,
-    note: 'Facing a 3-bet+. Not yet modelled (Phase 2). No reliable range shown.',
-    supported: false,
+    noteKey: 'note.vs3bet', noteParams: null, supported: false,
   }
 }
 
-// What hero faces AFTER acting, based on the seats that act after hero.
-// heroAction is 'fold' | 'call' | 'raise' | null.
-// Returns { type, note, supported } or null if there's no follow-up decision.
+// What hero faces AFTER acting. Returns { type, supported, noteKey, noteParams }
+// or null. noteParams may carry a `wayKey` that the UI resolves and injects as `way`.
 export function deriveFollowup(format, hero, actions, heroAction) {
   if (!heroAction || heroAction === 'fold') return null
   const order = FORMATS[format]
@@ -61,48 +49,35 @@ export function deriveFollowup(format, hero, actions, heroAction) {
 
   if (heroAction === 'raise') {
     if (raisersAfter.length > 0) {
-      return {
-        type: 'vs3bet',
-        note: `${raisersAfter.join(', ')} 3-bet you. Facing a 3-bet isn't modelled yet (Phase 2) — no range shown.`,
-        supported: false,
-      }
+      return { type: 'vs3bet', supported: false, noteKey: 'fu.3bet', noteParams: { who: raisersAfter.join(', ') } }
     }
     if (callersAfter.length > 0) {
       return {
-        type: 'postflop',
-        note: `${callersAfter.join(', ')} called your raise — you see a flop ${callersAfter.length > 1 ? 'multiway' : 'heads-up'}. Postflop is Phase 2.`,
-        supported: false,
+        type: 'postflop', supported: false, noteKey: 'fu.calledRaise',
+        noteParams: { who: callersAfter.join(', '), wayKey: callersAfter.length > 1 ? 'way.multiway' : 'way.headsup' },
       }
     }
-    return { type: 'won', note: 'Everyone folds to your raise — you take it down preflop.', supported: true }
+    return { type: 'won', supported: true, noteKey: 'fu.won', noteParams: null }
   }
 
   // hero called
   if (raisersAfter.length > 0) {
-    return {
-      type: 'vs3bet',
-      note: `${raisersAfter.join(', ')} raised behind after your call (squeeze) — not modelled yet.`,
-      supported: false,
-    }
+    return { type: 'vs3bet', supported: false, noteKey: 'fu.squeeze', noteParams: { who: raisersAfter.join(', ') } }
   }
-  return {
-    type: 'postflop',
-    note: callersAfter.length
-      ? `You and ${callersAfter.join(', ')} see a flop multiway. Postflop is Phase 2.`
-      : 'You call and see a flop. Postflop is Phase 2.',
-    supported: false,
-  }
+  return callersAfter.length
+    ? { type: 'postflop', supported: false, noteKey: 'fu.callFlopMulti', noteParams: { who: callersAfter.join(', ') } }
+    : { type: 'postflop', supported: false, noteKey: 'fu.callFlop', noteParams: null }
 }
 
-// A human-readable line describing the action so far.
-export function describeAction(format, hero, actions) {
+// Localized "action so far" line. `t` is the translate function.
+export function describeAction(format, hero, actions, t) {
   const order = FORMATS[format]
   const heroIdx = order.indexOf(hero)
   const parts = []
   for (let i = 0; i < heroIdx; i++) {
     const p = order[i]
     const a = actions[p]
-    if (a) parts.push(`${p} ${a}s`)
+    if (a) parts.push(`${p} ${t('verb.' + a)}`)
   }
-  return parts.length ? parts.join(', ') : 'folds to hero'
+  return parts.length ? parts.join(', ') : t('foldsToHero')
 }

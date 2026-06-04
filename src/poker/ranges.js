@@ -87,17 +87,15 @@ export function getStrategy(format, hero, context) {
   const key = rangeKey(format, hero, context)
   const ov = overrides[key]
 
-  let raiseStr = '', callStr = '', approx = false, title = ''
+  let raiseStr = '', callStr = '', approx = false
 
   if (ov) {
     raiseStr = ov.raise || ''
     callStr = ov.call || ''
     approx = false
-    title = ov.title || titleFor(hero, context)
   } else if (context.type === 'RFI') {
     raiseStr = RFI[format]?.[hero] || ''
     callStr = ''
-    title = `${hero} — Open (RFI)`
     approx = false
   } else if (context.type === 'vsRFI') {
     const bucket = positionBucket(format, context.raiser)
@@ -109,13 +107,17 @@ export function getStrategy(format, hero, context) {
       const b = (VS_RFI_BASE[bucket] || VS_RFI_BASE.MID)[ip]
       raiseStr = b.raise; callStr = b.call
     }
-    title = `${hero} vs ${context.raiser} open`
     approx = true
   } else {
     // vs3bet / multiway not yet modelled
-    title = titleFor(hero, context)
     approx = true
   }
+
+  // Title as an i18n key + params (the UI localizes it).
+  let titleKey = 'title.rfi', titleParams = { pos: hero }
+  if (context.type === 'vsRFI') { titleKey = 'title.vsRFI'; titleParams = { hero, raiser: context.raiser } }
+  else if (context.type === 'vs3bet') { titleKey = 'title.vs3bet'; titleParams = { hero } }
+  else if (context.type === 'multiway') { titleKey = 'title.multiway'; titleParams = { hero } }
 
   const raiseSet = expandRange(raiseStr)
   const callSet = expandRange(callStr)
@@ -123,15 +125,7 @@ export function getStrategy(format, hero, context) {
   for (const h of raiseSet) map[h] = 'R'
   for (const h of callSet) if (!map[h]) map[h] = 'C'
 
-  return { map, approx, title, raiseStr, callStr, key }
-}
-
-function titleFor(hero, context) {
-  if (context.type === 'RFI') return `${hero} — Open (RFI)`
-  if (context.type === 'vsRFI') return `${hero} vs ${context.raiser} open`
-  if (context.type === 'vs3bet') return `${hero} faces a 3-bet`
-  if (context.type === 'multiway') return `${hero} — multiway pot`
-  return hero
+  return { map, approx, titleKey, titleParams, raiseStr, callStr, key }
 }
 
 // Look up the recommended action for a specific hand in a scenario.

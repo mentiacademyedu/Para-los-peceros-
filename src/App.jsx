@@ -5,6 +5,7 @@ import { deriveContext, describeAction, deriveFollowup } from './poker/scenario.
 import { getStrategy, saveOverride, clearOverride, rangeKey, rangeStats } from './poker/ranges.js'
 import RangeGrid, { StrategyBar, COLORS } from './components/RangeGrid.jsx'
 import PokerTable from './components/PokerTable.jsx'
+import { LangContext, LANGS, translate, useLang } from './i18n.js'
 
 const SUITS = [
   { s: 's', sym: '♠', color: '#cfd6e4' },
@@ -12,46 +13,52 @@ const SUITS = [
   { s: 'd', sym: '♦', color: '#5aa9ff' },
   { s: 'c', sym: '♣', color: '#5ad18a' },
 ]
-const ACTION_NAME = { R: 'RAISE / 3-BET', C: 'CALL', F: 'FOLD' }
 const ACTION_COLOR = COLORS
+const GUESS_TO_ACT = { R: 'raise', C: 'call', F: 'fold' }
 
 const emptyActions = () => ({})
 
 export default function App() {
   const [format, setFormat] = useState('6max')
   const [tab, setTab] = useState('analyze')
+  const [lang, setLangState] = useState(() => localStorage.getItem('caller.lang') || 'en')
 
-  function changeFormat(f) {
-    setFormat(f)
-  }
+  const t = (k, v) => translate(lang, k, v)
+  function setLang(l) { setLangState(l); localStorage.setItem('caller.lang', l) }
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">♠ Poker Caller <span>Simulator</span></div>
-        <div className="format-toggle">
-          {Object.keys(FORMATS).map((f) => (
-            <button key={f} className={format === f ? 'on' : ''} onClick={() => changeFormat(f)}>
-              {f}
-            </button>
-          ))}
-        </div>
-        <nav className="tabs">
-          {[['analyze', 'Analyze a hand'], ['trainer', 'Trainer'], ['edit', 'Edit ranges']].map(([k, label]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
-          ))}
-        </nav>
-      </header>
+    <LangContext.Provider value={{ lang, t, setLang }}>
+      <div className="app">
+        <header className="topbar">
+          <div className="brand">♠ Poker Caller <span>{t('brand.sub')}</span></div>
+          <div className="format-toggle">
+            {Object.keys(FORMATS).map((f) => (
+              <button key={f} className={format === f ? 'on' : ''} onClick={() => setFormat(f)}>{f}</button>
+            ))}
+          </div>
+          <div className="format-toggle lang-toggle">
+            {LANGS.map((l) => (
+              <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>{t('lang.' + l)}</button>
+            ))}
+          </div>
+          <nav className="tabs">
+            {['analyze', 'trainer', 'edit'].map((k) => (
+              <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t('tab.' + k)}</button>
+            ))}
+          </nav>
+        </header>
 
-      {tab === 'analyze' && <Analyze format={format} />}
-      {tab === 'trainer' && <Trainer format={format} />}
-      {tab === 'edit' && <EditRanges format={format} />}
-    </div>
+        {tab === 'analyze' && <Analyze format={format} />}
+        {tab === 'trainer' && <Trainer format={format} />}
+        {tab === 'edit' && <EditRanges format={format} />}
+      </div>
+    </LangContext.Provider>
   )
 }
 
 // -------------------- ANALYZE (manual hand reconstruction) ----------------
 function Analyze({ format }) {
+  const { t } = useLang()
   const seats = FORMATS[format]
   const [hero, setHero] = useState(seats[3] || seats[0])
   const [actions, setActions] = useState(emptyActions())
@@ -59,7 +66,6 @@ function Analyze({ format }) {
   const [card1, setCard1] = useState('As')
   const [card2, setCard2] = useState('Ks')
 
-  // keep hero valid if format changed
   if (!seats.includes(hero)) {
     setHero(seats[3] || seats[0])
     setActions(emptyActions())
@@ -70,80 +76,75 @@ function Analyze({ format }) {
   const context = useMemo(() => deriveContext(format, hero, actions), [format, hero, actions])
   const strat = useMemo(() => getStrategy(format, hero, context), [format, hero, context])
   const action = strat.map[hand] || 'F'
-  const actionLine = describeAction(format, hero, actions)
+  const actionLine = describeAction(format, hero, actions, t)
   const followup = useMemo(
     () => deriveFollowup(format, hero, actions, heroAction),
     [format, hero, actions, heroAction]
   )
+  const title = t(strat.titleKey, strat.titleParams)
 
-  function setAction(pos, a) {
-    setActions((prev) => ({ ...prev, [pos]: a }))
-  }
-  function reset() {
-    setActions(emptyActions())
-    setHeroAction(null)
-  }
+  function setAction(pos, a) { setActions((prev) => ({ ...prev, [pos]: a })) }
+  function reset() { setActions(emptyActions()); setHeroAction(null) }
 
   return (
     <div className="layout">
       <section className="panel">
-        <h2>1 · Set the table</h2>
-        <p className="hint">Click a seat name to make it <b>you</b>. Set what every other player did — including SB/BB acting after you. Your own chips = what you did.</p>
+        <h2>{t('analyze.step1')}</h2>
+        <p className="hint">{t('analyze.step1.hint')}</p>
         <PokerTable
-          format={format}
-          hero={hero}
-          actions={actions}
-          heroAction={heroAction}
-          onHero={setHero}
-          onAction={setAction}
-          onHeroAction={setHeroAction}
+          format={format} hero={hero} actions={actions} heroAction={heroAction}
+          onHero={setHero} onAction={setAction} onHeroAction={setHeroAction}
         />
-        <button className="ghost" onClick={reset}>Reset actions</button>
+        <button className="ghost" onClick={reset}>{t('analyze.reset')}</button>
 
-        <h2>2 · Your cards</h2>
+        <h2>{t('analyze.step2')}</h2>
         <CardPicker card1={card1} card2={card2} onCard1={setCard1} onCard2={setCard2} />
-        <div className="hand-class">Hand class: <b>{hand}</b> <span className="muted">({comboCount(hand)} combos)</span></div>
+        <div className="hand-class">{t('analyze.handClass')} <b>{hand}</b> <span className="muted">({t('analyze.combos', { n: comboCount(hand) })})</span></div>
       </section>
 
       <section className="panel">
-        <h2>3 · Recommendation</h2>
-        <div className="action-line">Action so far: <b>{actionLine}</b></div>
+        <h2>{t('analyze.step3')}</h2>
+        <div className="action-line">{t('analyze.actionSoFar')} <b>{actionLine}</b></div>
 
         {context.supported ? (
           <div className="verdict" style={{ borderColor: ACTION_COLOR[action] }}>
             <div className="verdict-hand">{hand}</div>
-            <div className="verdict-action" style={{ color: ACTION_COLOR[action] }}>{ACTION_NAME[action]}</div>
-            <div className="verdict-ctx">{strat.title}</div>
+            <div className="verdict-action" style={{ color: ACTION_COLOR[action] }}>{t('action.' + action)}</div>
+            <div className="verdict-ctx">{title}</div>
           </div>
         ) : (
           <div className="verdict warn">
-            <div className="verdict-action" style={{ color: '#e8a33d' }}>NOT MODELLED YET</div>
-            <div className="verdict-ctx">{context.note}</div>
+            <div className="verdict-action" style={{ color: '#d9b878' }}>{t('analyze.notModelled')}</div>
+            {context.noteKey && <div className="verdict-ctx">{t(context.noteKey, context.noteParams)}</div>}
           </div>
         )}
 
-        {strat.approx && context.supported && (
-          <div className="banner">⚠ Baseline approximation — refine this spot in “Edit ranges”.</div>
-        )}
-        {context.note && context.supported && <div className="note">{context.note}</div>}
+        {strat.approx && context.supported && <div className="banner">{t('analyze.approx')}</div>}
+        {context.noteKey && context.supported && <div className="note">{t(context.noteKey, context.noteParams)}</div>}
 
         {followup && (
           <div className={`followup ${followup.supported ? '' : 'followup-soon'}`}>
-            <div className="followup-head">After you {heroAction}:</div>
-            <div>{followup.note}</div>
+            <div className="followup-head">{t('analyze.afterYou', { action: t('you.' + heroAction) })}</div>
+            <div>{renderFollowupNote(t, followup)}</div>
           </div>
         )}
 
-        <h2>{strat.title}</h2>
+        <h2>{title}</h2>
         <StrategyBar stats={rangeStats(strat.map)} />
         <RangeGrid map={strat.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
-        <p className="hint">Tip: click any cell to load that hand into your cards.</p>
+        <p className="hint">{t('analyze.tipCell')}</p>
       </section>
     </div>
   )
 }
 
-// Load a hand class (e.g. 'AKs') back into two concrete cards for the picker.
+// Resolve a followup note, injecting a translated `way` if present.
+function renderFollowupNote(t, fu) {
+  const params = { ...(fu.noteParams || {}) }
+  if (params.wayKey) { params.way = t(params.wayKey); delete params.wayKey }
+  return t(fu.noteKey, params)
+}
+
 function pickHandIntoCards(hand, setCard1, setCard2) {
   const r1 = hand[0], r2 = hand[1]
   if (hand.length === 2) { setCard1(r1 + 's'); setCard2(r2 + 'h'); return }
@@ -194,25 +195,21 @@ function randInt(n) { return Math.floor(Math.random() * n) }
 
 function makeDeal(format) {
   const seats = FORMATS[format]
-  // choose scenario type
   const wantVs = Math.random() < 0.5
   let hero, actions = {}
   if (wantVs) {
-    // hero needs at least one seat before it; pick a raiser before hero
     const heroIdx = 1 + randInt(seats.length - 1)
     hero = seats[heroIdx]
     const raiserIdx = randInt(heroIdx)
     seats.slice(0, heroIdx).forEach((p, i) => { actions[p] = i === raiserIdx ? 'raise' : 'fold' })
   } else {
-    // folded to hero (RFI). hero can't be BB (no RFI spot).
     const candidates = seats.filter((s) => s !== 'BB')
     hero = candidates[randInt(candidates.length)]
     const heroIdx = seats.indexOf(hero)
     seats.slice(0, heroIdx).forEach((p) => { actions[p] = 'fold' })
   }
-  // deal a random hand weighted by combos
   const r1 = RANKS[randInt(13)]
-  let r2 = RANKS[randInt(13)]
+  const r2 = RANKS[randInt(13)]
   const suited = Math.random() < 0.5
   let c1, c2
   if (r1 === r2) { c1 = r1 + 's'; c2 = r2 + 'h' }
@@ -222,11 +219,11 @@ function makeDeal(format) {
 }
 
 function Trainer({ format }) {
+  const { t } = useLang()
   const [deal, setDeal] = useState(() => makeDeal(format))
   const [guess, setGuess] = useState(null)
   const [score, setScore] = useState({ correct: 0, total: 0 })
 
-  // reset the deal when format changes
   const [lastFormat, setLastFormat] = useState(format)
   if (lastFormat !== format) {
     setLastFormat(format)
@@ -239,6 +236,7 @@ function Trainer({ format }) {
   const strat = useMemo(() => getStrategy(format, deal.hero, context), [format, deal.hero, context])
   const correct = strat.map[hand] || 'F'
   const revealed = guess !== null
+  const title = t(strat.titleKey, strat.titleParams)
 
   function answer(a) {
     if (revealed) return
@@ -252,21 +250,27 @@ function Trainer({ format }) {
   return (
     <div className="layout">
       <section className="panel">
-        <h2>Drill</h2>
-        <div className="score">Score: <b>{score.correct}/{score.total}</b>
+        <h2>{t('trainer.drill')}</h2>
+        <div className="score">{t('trainer.score')} <b>{score.correct}/{score.total}</b>
           {score.total > 0 && <span className="muted"> ({Math.round((100 * score.correct) / score.total)}%)</span>}
         </div>
+
+        <PokerTable
+          format={format} hero={deal.hero} actions={deal.actions}
+          heroAction={revealed ? GUESS_TO_ACT[guess] : null} readOnly
+        />
+
         <div className="drill-q">
-          <div>You are <b>{deal.hero}</b> in <b>{format}</b></div>
-          <div className="muted">{describeAction(format, deal.hero, deal.actions)}</div>
+          <div>{t('trainer.youAre', { hero: deal.hero, format })}</div>
+          <div className="muted">{describeAction(format, deal.hero, deal.actions, t)}</div>
           <div className="drill-cards">
             <BigCard card={deal.card1} /><BigCard card={deal.card2} />
           </div>
-          <div className="muted">Your hand: <b>{hand}</b></div>
+          <div className="muted">{t('trainer.yourHand')} <b>{hand}</b></div>
         </div>
 
         {!context.supported ? (
-          <div className="banner">This random spot isn’t modelled — <button className="ghost" onClick={next}>skip</button></div>
+          <div className="banner">{t('trainer.notModelled')} <button className="ghost" onClick={next}>{t('trainer.skip')}</button></div>
         ) : (
           <div className="answer-btns">
             {options.map((a) => (
@@ -276,25 +280,25 @@ function Trainer({ format }) {
                 style={{ borderColor: ACTION_COLOR[a] }}
                 onClick={() => answer(a)}
                 disabled={revealed}
-              >{ACTION_NAME[a]}</button>
+              >{t('action.' + a)}</button>
             ))}
           </div>
         )}
 
         {revealed && (
           <div className={`result ${guess === correct ? 'ok' : 'bad'}`}>
-            {guess === correct ? '✓ Correct' : `✗ Wrong — solver says ${ACTION_NAME[correct]}`}
-            <button className="primary" onClick={next}>Next hand →</button>
+            {guess === correct ? t('trainer.correct') : t('trainer.wrong', { action: t('action.' + correct) })}
+            <button className="primary" onClick={next}>{t('trainer.next')}</button>
           </div>
         )}
       </section>
 
       <section className="panel">
-        <h2>{strat.title}</h2>
-        {strat.approx && <div className="banner">⚠ Baseline approximation.</div>}
+        <h2>{title}</h2>
+        {strat.approx && <div className="banner">{t('trainer.approx')}</div>}
         {revealed && <StrategyBar stats={rangeStats(strat.map)} />}
         <RangeGrid map={strat.map} highlight={hand} hideFills={!revealed} />
-        {!revealed && <p className="hint">Range hidden until you answer.</p>}
+        {!revealed && <p className="hint">{t('trainer.hidden')}</p>}
       </section>
     </div>
   )
@@ -311,6 +315,7 @@ function BigCard({ card }) {
 
 // -------------------- EDIT RANGES -----------------------------------------
 function EditRanges({ format }) {
+  const { t } = useLang()
   const seats = FORMATS[format]
   const [hero, setHero] = useState(seats[0])
   const [ctxType, setCtxType] = useState('RFI')
@@ -326,7 +331,6 @@ function EditRanges({ format }) {
   const [raiseStr, setRaiseStr] = useState(strat.raiseStr)
   const [callStr, setCallStr] = useState(strat.callStr)
 
-  // reload editor when target changes
   const targetKey = rangeKey(format, hero, context)
   const [lastKey, setLastKey] = useState(targetKey)
   if (lastKey !== targetKey) {
@@ -335,8 +339,6 @@ function EditRanges({ format }) {
     setCallStr(strat.callStr)
   }
 
-  const preview = getStrategy(format, hero, context)
-  // live preview from current editor text
   const liveMap = useMemo(() => {
     const m = {}
     for (const h of expandRange(raiseStr)) m[h] = 'R'
@@ -345,8 +347,8 @@ function EditRanges({ format }) {
   }, [raiseStr, callStr])
 
   function save() {
-    saveOverride(targetKey, { raise: raiseStr, call: callStr, title: preview.title })
-    alert('Saved. This spot now uses your custom range.')
+    saveOverride(targetKey, { raise: raiseStr, call: callStr })
+    alert(t('edit.saved'))
   }
   function reset() {
     clearOverride(targetKey)
@@ -358,45 +360,45 @@ function EditRanges({ format }) {
   return (
     <div className="layout">
       <section className="panel">
-        <h2>Edit a range</h2>
-        <p className="hint">Paste your own solver output as poker notation. Saved locally in your browser.</p>
+        <h2>{t('edit.title')}</h2>
+        <p className="hint">{t('edit.hint')}</p>
         <div className="edit-controls">
-          <label>Hero
+          <label>{t('edit.hero')}
             <select value={hero} onChange={(e) => setHero(e.target.value)}>
               {seats.map((s) => <option key={s}>{s}</option>)}
             </select>
           </label>
-          <label>Situation
+          <label>{t('edit.situation')}
             <select value={ctxType} onChange={(e) => setCtxType(e.target.value)}>
-              <option value="RFI">Open (RFI)</option>
-              <option value="vsRFI">Facing a raise</option>
+              <option value="RFI">{t('edit.sit.rfi')}</option>
+              <option value="vsRFI">{t('edit.sit.vsRFI')}</option>
             </select>
           </label>
           {ctxType === 'vsRFI' && (
-            <label>Raiser
+            <label>{t('edit.raiser')}
               <select value={raiser} onChange={(e) => setRaiser(e.target.value)}>
                 {seats.filter((s) => seats.indexOf(s) < seats.indexOf(hero)).map((s) => <option key={s}>{s}</option>)}
               </select>
             </label>
           )}
         </div>
-        <label className="field">Raise / 3-bet range
+        <label className="field">{t('edit.raiseRange')}
           <textarea value={raiseStr} onChange={(e) => setRaiseStr(e.target.value)} rows={3} />
         </label>
         {ctxType !== 'RFI' && (
-          <label className="field">Call range
+          <label className="field">{t('edit.callRange')}
             <textarea value={callStr} onChange={(e) => setCallStr(e.target.value)} rows={3} />
           </label>
         )}
         <div className="edit-actions">
-          <button className="primary" onClick={save}>Save spot</button>
-          <button className="ghost" onClick={reset}>Reset to baseline</button>
+          <button className="primary" onClick={save}>{t('edit.save')}</button>
+          <button className="ghost" onClick={reset}>{t('edit.reset')}</button>
         </div>
-        <p className="hint">Notation examples: <code>22+</code>, <code>A2s+</code>, <code>KTo+</code>, <code>T9s</code>, <code>A5s-A2s</code></p>
+        <p className="hint">{t('edit.notation')} <code>22+</code>, <code>A2s+</code>, <code>KTo+</code>, <code>T9s</code>, <code>A5s-A2s</code></p>
       </section>
 
       <section className="panel">
-        <h2>Live preview</h2>
+        <h2>{t('edit.preview')}</h2>
         <StrategyBar stats={rangeStats(liveMap)} />
         <RangeGrid map={liveMap} />
       </section>
