@@ -73,29 +73,27 @@ function pctColor(p) { return p >= 80 ? COLORS.C : p >= 60 ? '#d9b878' : COLORS.
 
 const emptyActions = () => ({})
 
+const STACKS = [200, 100, 75, 50, 40, 30, 25, 20, 15, 10]
+
 export default function App() {
   const [format, setFormat] = useState('6max')
   const [tab, setTab] = useState('analyze')
   const [lang, setLangState] = useState(() => localStorage.getItem('caller.lang') || 'en')
+  const [gameType, setGameTypeState] = useState(() => localStorage.getItem('caller.gameType') || 'cash')
+  const [stackBB, setStackBBState] = useState(() => Number(localStorage.getItem('caller.stackBB')) || 100)
 
   const t = (k, v) => translate(lang, k, v)
   function setLang(l) { setLangState(l); localStorage.setItem('caller.lang', l) }
+  function setGameType(g) { setGameTypeState(g); localStorage.setItem('caller.gameType', g) }
+  function setStackBB(n) { setStackBBState(n); localStorage.setItem('caller.stackBB', String(n)) }
+
+  const depth = { gameType, stackBB }
 
   return (
     <LangContext.Provider value={{ lang, t, setLang }}>
       <div className="app">
         <header className="topbar">
-          <div className="brand">♠ Poker Caller <span>{t('brand.sub')}</span></div>
-          <div className="format-toggle">
-            {Object.keys(FORMATS).map((f) => (
-              <button key={f} className={format === f ? 'on' : ''} onClick={() => setFormat(f)}>{f}</button>
-            ))}
-          </div>
-          <div className="format-toggle lang-toggle">
-            {LANGS.map((l) => (
-              <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>{t('lang.' + l)}</button>
-            ))}
-          </div>
+          <div className="brand">[CALLER] <span className="spade">♠</span><span className="sub">{t('brand.sub')}</span></div>
           <nav className="tabs">
             {['analyze', 'trainer', 'edit'].map((k) => (
               <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t('tab.' + k)}</button>
@@ -103,16 +101,56 @@ export default function App() {
           </nav>
         </header>
 
-        {tab === 'analyze' && <Analyze format={format} />}
-        {tab === 'trainer' && <Trainer format={format} />}
+        <div className="controlbar">
+          <div className="ctrl-group">
+            <span className="ctrl-label">{t('ctrl.format')}</span>
+            <div className="format-toggle">
+              {Object.keys(FORMATS).map((f) => (
+                <button key={f} className={format === f ? 'on' : ''} onClick={() => setFormat(f)}>{f}</button>
+              ))}
+            </div>
+          </div>
+          <div className="ctrl-group">
+            <span className="ctrl-label">{t('ctrl.game')}</span>
+            <div className="seg">
+              {['cash', 'mtt'].map((g) => (
+                <button key={g} className={gameType === g ? 'on' : ''} onClick={() => setGameType(g)}>{t('ctrl.' + g)}</button>
+              ))}
+            </div>
+          </div>
+          <div className="ctrl-group">
+            <span className="ctrl-label">{t('ctrl.stack')}</span>
+            <select className="stack-select" value={stackBB} onChange={(e) => setStackBB(Number(e.target.value))}>
+              {STACKS.map((s) => <option key={s} value={s}>{s}bb</option>)}
+            </select>
+          </div>
+          <div className="ctrl-group">
+            <span className="ctrl-label">{t('ctrl.lang')}</span>
+            <div className="lang-toggle">
+              {LANGS.map((l) => (
+                <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>{t('lang.' + l)}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {tab === 'analyze' && <Analyze format={format} depth={depth} />}
+        {tab === 'trainer' && <Trainer format={format} depth={depth} />}
         {tab === 'edit' && <EditRanges format={format} />}
       </div>
     </LangContext.Provider>
   )
 }
 
+function DepthPill({ depth }) {
+  const { t } = useLang()
+  return (
+    <div className="depth-pill">{t('ctrl.' + depth.gameType)} · <b>{depth.stackBB}bb</b></div>
+  )
+}
+
 // -------------------- ANALYZE (manual hand reconstruction) ----------------
-function Analyze({ format }) {
+function Analyze({ format, depth }) {
   const { t } = useLang()
   const seats = FORMATS[format]
   const [hero, setHero] = useState(seats[3] || seats[0])
@@ -178,6 +216,8 @@ function Analyze({ format }) {
 
       <section className="panel">
         <h2>{t('analyze.step3')}</h2>
+        <DepthPill depth={depth} />
+        {(depth.gameType !== 'cash' || depth.stackBB !== 100) && <div className="note">{t('depth.note')}</div>}
         <div className="action-line">{t('analyze.actionSoFar')} <b>{actionLine}</b></div>
 
         {context.supported ? (
@@ -392,7 +432,7 @@ function makeDeal(format, weights) {
   return { hero, actions, heroAction, node, card1: c1, card2: c2 }
 }
 
-function Trainer({ format }) {
+function Trainer({ format, depth }) {
   const { t } = useLang()
   const [deal, setDeal] = useState(() => makeDeal(format))
   const [guess, setGuess] = useState(null)
@@ -459,6 +499,8 @@ function Trainer({ format }) {
           </div>
           <button className={`chip ${focus ? 'on' : ''}`} onClick={toggleFocus}>{t('trainer.focusWeak')}</button>
         </div>
+
+        <DepthPill depth={depth} />
 
         <PokerTable
           format={format} hero={deal.hero} actions={deal.actions}

@@ -4,8 +4,11 @@ export const LANGS = ['en', 'es']
 
 const STRINGS = {
   en: {
-    'brand.sub': 'Simulator',
+    'brand.sub': 'Range Trainer',
     'lang.en': 'EN', 'lang.es': 'ES',
+    'ctrl.format': 'Format', 'ctrl.game': 'Game', 'ctrl.stack': 'Stack', 'ctrl.lang': 'Language',
+    'ctrl.cash': 'Cash', 'ctrl.mtt': 'Tournament',
+    'depth.note': 'Showing the 100bb cash baseline. Tournament / short-stack charts activate once you import that data.',
     'tab.analyze': 'Analyze a hand',
     'tab.trainer': 'Trainer',
     'tab.edit': 'Edit ranges',
@@ -88,10 +91,10 @@ const STRINGS = {
     'note.vs3bet': 'Facing a 3-bet+. Not yet modelled (Phase 2). No reliable range shown.',
 
     'fu.3bet': '{who} 3-bet you. Facing a 3-bet isn’t modelled yet (Phase 2) — no range shown.',
-    'fu.calledRaise': '{who} called your raise — you see a flop {way}. Postflop is Phase 2.',
+    'fu.calledRaise': '{who} called your raise — you see a flop {way}. Postflop is Phase 2(coming soon).',
     'fu.won': 'Everyone folds to your raise — you take it down preflop.',
     'fu.squeeze': '{who} raised behind after your call (squeeze) — not modelled yet.',
-    'fu.callFlopMulti': 'You and {who} see a flop multiway. Postflop is Phase 2.',
+    'fu.callFlopMulti': 'You and {who} see a flop multiway. Postflop is Phase 2(coming soon).',
     'fu.callFlop': 'You call and see a flop. Postflop is Phase 2.',
     'way.headsup': 'heads-up', 'way.multiway': 'multiway',
 
@@ -109,8 +112,11 @@ const STRINGS = {
     'title.squeeze': '{hero} squeeze vs {raiser} open + caller',
   },
   es: {
-    'brand.sub': 'Simulador',
+    'brand.sub': 'Entrenador de Rangos',
     'lang.en': 'EN', 'lang.es': 'ES',
+    'ctrl.format': 'Formato', 'ctrl.game': 'Juego', 'ctrl.stack': 'Stack', 'ctrl.lang': 'Idioma',
+    'ctrl.cash': 'Cash', 'ctrl.mtt': 'Torneo',
+    'depth.note': 'Mostrando la base de 100bb (cash). Los charts de torneo / stack corto se activan al importar esos datos.',
     'tab.analyze': 'Analizar mano',
     'tab.trainer': 'Entrenador',
     'tab.edit': 'Editar rangos',
@@ -196,8 +202,8 @@ const STRINGS = {
     'fu.calledRaise': '{who} pagó tu subida — ves un flop {way}. El postflop es Fase 2.',
     'fu.won': 'Todos se retiran ante tu subida — te llevas el bote preflop.',
     'fu.squeeze': '{who} subió por detrás tras tu pago (squeeze) — aún no modelado.',
-    'fu.callFlopMulti': 'Tú y {who} ven un flop multiway. El postflop es Fase 2.',
-    'fu.callFlop': 'Pagas y ves un flop. El postflop es Fase 2.',
+    'fu.callFlopMulti': 'Tú y {who} ven un flop multiway. El postflop es Fase 2(pronto).',
+    'fu.callFlop': 'Pagas y ves un flop. El postflop es Fase 2(pronto).',
     'way.headsup': 'heads-up', 'way.multiway': 'multiway',
 
     'action.R4': '4-BET',
