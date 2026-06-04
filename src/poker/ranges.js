@@ -57,6 +57,16 @@ export const MTT_RFI = {
       BTN: '22+, A2s+, K2s+, Q2s+, J6s+, T6s+, 96s+, 85s+, 75s+, 64s+, 53s+, 43s, 32s, A2o+, K7o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o',
       SB: '22+, A2s+, K2s+, Q2s+, J2s+, T4s+, 94s+, 84s+, 74s+, 63s+, 53s+, 43s, 32s, A2o+, K2o+, Q2o+, J6o+, T6o+, 96o+, 86o+, 76o',
     },
+    // 10bb 9-max push/raise chart (UTG+2 not provided — falls back to baseline).
+    '10': {
+      UTG: '44+, A4s+, K9s+, QTs+, J9s+, T9s, A9o+, KJo+',
+      'UTG+1': '33+, A2s+, K9s+, Q9s+, J9s+, T9s, A9o+, KJo+, QJo',
+      LJ: '22+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, A7o+, KTo+, QJo',
+      HJ: '22+, A2s+, K9s+, Q9s+, J9s+, T8s+, 98s, A3o+, KTo+, QJo, JTo',
+      CO: '22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 98s, A2o+, KTo+, QTo+, JTo',
+      BTN: '22+, A2s+, K2s+, Q5s+, J6s+, T6s+, 97s+, 87s, A2o+, K7o+, QTo+, JTo',
+      SB: '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J2o+, T4o+, 95o+, 86o+, 75o+, 65o',
+    },
   },
   '6max': {},
 }
