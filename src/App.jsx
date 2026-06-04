@@ -95,6 +95,13 @@ function Analyze({ format }) {
   )
   const title = t(strat.titleKey, strat.titleParams)
 
+  // If hero opened and faces a single 3-bet, model the 4-bet/call/fold spot.
+  const vs3betCtx = followup && followup.supported && followup.type === 'vs3bet'
+    ? { type: 'vs3betOpener', raiser: followup.threeBettor }
+    : null
+  const strat3 = vs3betCtx ? getStrategy(format, hero, vs3betCtx) : null
+  const action3 = strat3 ? (strat3.map[hand] || 'F') : null
+
   function setAction(pos, a) { setActions((prev) => ({ ...prev, [pos]: a })) }
   function reset() { setActions(emptyActions()); setHeroAction(null) }
 
@@ -141,10 +148,30 @@ function Analyze({ format }) {
           </div>
         )}
 
-        <h2>{title}</h2>
-        <StrategyBar stats={rangeStats(strat.map)} />
-        <RangeGrid map={strat.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
-        <p className="hint">{t('analyze.tipCell')}</p>
+        {context.supported && (
+          <>
+            <h2>{title}</h2>
+            <StrategyBar stats={rangeStats(strat.map)} />
+            <RangeGrid map={strat.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
+            <p className="hint">{t('analyze.tipCell')}</p>
+          </>
+        )}
+
+        {strat3 && (
+          <div className="vs3bet-block">
+            <h2>{t('analyze.vs3bet')}</h2>
+            <div className="verdict">
+              <div className="verdict-hand">{hand}</div>
+              <div className="verdict-action" style={{ color: ACTION_COLOR[action3] }}>
+                {action3 === 'R' ? t('action.R4') : t('action.' + action3)}
+              </div>
+              <div className="verdict-ctx">{t(strat3.titleKey, strat3.titleParams)}</div>
+            </div>
+            {strat3.approx && <div className="banner">{t('analyze.approx')}</div>}
+            <StrategyBar stats={rangeStats(strat3.map)} />
+            <RangeGrid map={strat3.map} highlight={hand} onCellClick={(h) => pickHandIntoCards(h, setCard1, setCard2)} />
+          </div>
+        )}
       </section>
     </div>
   )
@@ -207,19 +234,38 @@ function randInt(n) { return Math.floor(Math.random() * n) }
 
 function makeDeal(format) {
   const seats = FORMATS[format]
-  const wantVs = Math.random() < 0.5
-  let hero, actions = {}
-  if (wantVs) {
-    const heroIdx = 1 + randInt(seats.length - 1)
-    hero = seats[heroIdx]
-    const raiserIdx = randInt(heroIdx)
-    seats.slice(0, heroIdx).forEach((p, i) => { actions[p] = i === raiserIdx ? 'raise' : 'fold' })
-  } else {
+  const roll = Math.random()
+  let hero, heroAction = null, node
+  const actions = {}
+
+  if (roll < 0.34) {
+    // RFI — folded to hero (BB never opens)
     const candidates = seats.filter((s) => s !== 'BB')
     hero = candidates[randInt(candidates.length)]
     const heroIdx = seats.indexOf(hero)
     seats.slice(0, heroIdx).forEach((p) => { actions[p] = 'fold' })
+    node = { type: 'RFI', raiser: null }
+  } else if (roll < 0.67) {
+    // vsRFI — one raiser before hero
+    const heroIdx = 1 + randInt(seats.length - 1)
+    hero = seats[heroIdx]
+    const raiserIdx = randInt(heroIdx)
+    seats.slice(0, heroIdx).forEach((p, i) => { actions[p] = i === raiserIdx ? 'raise' : 'fold' })
+    node = { type: 'vsRFI', raiser: seats[raiserIdx] }
+  } else {
+    // vs3betOpener — hero opens, a seat behind 3-bets
+    const candidates = seats.filter((s) => s !== 'BB')
+    hero = candidates[randInt(candidates.length)]
+    const heroIdx = seats.indexOf(hero)
+    seats.slice(0, heroIdx).forEach((p) => { actions[p] = 'fold' })
+    heroAction = 'raise'
+    const afterIdx = seats.map((_, i) => i).filter((i) => i > heroIdx)
+    const tbIdx = afterIdx[randInt(afterIdx.length)]
+    seats.forEach((p, i) => { if (i > heroIdx && i < tbIdx) actions[p] = 'fold' })
+    actions[seats[tbIdx]] = 'raise'
+    node = { type: 'vs3betOpener', raiser: seats[tbIdx] }
   }
+
   const r1 = RANKS[randInt(13)]
   const r2 = RANKS[randInt(13)]
   const suited = Math.random() < 0.5
@@ -227,7 +273,7 @@ function makeDeal(format) {
   if (r1 === r2) { c1 = r1 + 's'; c2 = r2 + 'h' }
   else if (suited) { c1 = r1 + 's'; c2 = r2 + 's' }
   else { c1 = r1 + 's'; c2 = r2 + 'h' }
-  return { hero, actions, card1: c1, card2: c2 }
+  return { hero, actions, heroAction, node, card1: c1, card2: c2 }
 }
 
 function Trainer({ format }) {
@@ -244,11 +290,14 @@ function Trainer({ format }) {
   }
 
   const hand = cardsToHand(deal.card1, deal.card2)
-  const context = useMemo(() => deriveContext(format, deal.hero, deal.actions), [format, deal])
-  const strat = useMemo(() => getStrategy(format, deal.hero, context), [format, deal.hero, context])
+  const node = deal.node
+  const isVs3bet = node.type === 'vs3betOpener'
+  const strat = useMemo(() => getStrategy(format, deal.hero, node), [format, deal.hero, node])
   const correct = strat.map[hand] || 'F'
   const revealed = guess !== null
   const title = t(strat.titleKey, strat.titleParams)
+  const label = (a) => (isVs3bet && a === 'R' ? t('action.R4') : t('action.' + a))
+  const tableHeroAction = isVs3bet ? 'raise' : (revealed ? GUESS_TO_ACT[guess] : null)
 
   function answer(a) {
     if (revealed) return
@@ -257,7 +306,7 @@ function Trainer({ format }) {
   }
   function next() { setDeal(makeDeal(format)); setGuess(null) }
 
-  const options = context.type === 'RFI' ? ['R', 'F'] : ['R', 'C', 'F']
+  const options = node.type === 'RFI' ? ['R', 'F'] : ['R', 'C', 'F']
 
   return (
     <div className="layout">
@@ -269,36 +318,34 @@ function Trainer({ format }) {
 
         <PokerTable
           format={format} hero={deal.hero} actions={deal.actions}
-          heroAction={revealed ? GUESS_TO_ACT[guess] : null} readOnly
+          heroAction={tableHeroAction} readOnly
         />
 
         <div className="drill-q">
           <div>{t('trainer.youAre', { hero: deal.hero, format })}</div>
-          <div className="muted">{describeAction(format, deal.hero, deal.actions, t)}</div>
+          {isVs3bet
+            ? <div className="muted">{t('trainer.vs3betLine', { who: node.raiser })}</div>
+            : <div className="muted">{describeAction(format, deal.hero, deal.actions, t)}</div>}
           <div className="drill-cards">
             <BigCard card={deal.card1} /><BigCard card={deal.card2} />
           </div>
           <div className="muted">{t('trainer.yourHand')} <b>{hand}</b></div>
         </div>
 
-        {!context.supported ? (
-          <div className="banner">{t('trainer.notModelled')} <button className="ghost" onClick={next}>{t('trainer.skip')}</button></div>
-        ) : (
-          <div className="answer-btns">
-            {options.map((a) => (
-              <button
-                key={a}
-                className={`big-btn ${revealed && a === correct ? 'right' : ''} ${revealed && a === guess && a !== correct ? 'wrong' : ''}`}
-                onClick={() => answer(a)}
-                disabled={revealed}
-              >{t('action.' + a)}</button>
-            ))}
-          </div>
-        )}
+        <div className="answer-btns">
+          {options.map((a) => (
+            <button
+              key={a}
+              className={`big-btn ${revealed && a === correct ? 'right' : ''} ${revealed && a === guess && a !== correct ? 'wrong' : ''}`}
+              onClick={() => answer(a)}
+              disabled={revealed}
+            >{label(a)}</button>
+          ))}
+        </div>
 
         {revealed && (
           <div className={`result ${guess === correct ? 'ok' : 'bad'}`}>
-            {guess === correct ? t('trainer.correct') : t('trainer.wrong', { action: t('action.' + correct) })}
+            {guess === correct ? t('trainer.correct') : t('trainer.wrong', { action: label(correct) })}
             <button className="primary" onClick={next}>{t('trainer.next')}</button>
           </div>
         )}

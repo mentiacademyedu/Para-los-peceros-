@@ -48,7 +48,14 @@ export function deriveFollowup(format, hero, actions, heroAction) {
   const callersAfter = after.filter((p) => actions[p] === 'call')
 
   if (heroAction === 'raise') {
-    if (raisersAfter.length > 0) {
+    if (raisersAfter.length === 1) {
+      // hero opened and faces a single 3-bet — a modelled decision (Phase 2).
+      return {
+        type: 'vs3bet', supported: true, threeBettor: raisersAfter[0],
+        noteKey: 'fu.3betModelled', noteParams: { who: raisersAfter[0] },
+      }
+    }
+    if (raisersAfter.length > 1) {
       return { type: 'vs3bet', supported: false, noteKey: 'fu.3bet', noteParams: { who: raisersAfter.join(', ') } }
     }
     if (callersAfter.length > 0) {

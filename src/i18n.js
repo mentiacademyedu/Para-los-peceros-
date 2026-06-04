@@ -71,6 +71,12 @@ const STRINGS = {
     'fu.callFlopMulti': 'You and {who} see a flop multiway. Postflop is Phase 2.',
     'fu.callFlop': 'You call and see a flop. Postflop is Phase 2.',
     'way.headsup': 'heads-up', 'way.multiway': 'multiway',
+
+    'action.R4': '4-BET',
+    'title.vs3betPos': '{hero} vs {raiser} 3-bet',
+    'analyze.vs3bet': 'Facing the 3-bet',
+    'fu.3betModelled': '{who} 3-bet you — your 4-bet / call / fold decision is below.',
+    'trainer.vs3betLine': 'You open, {who} 3-bets — your move?',
   },
   es: {
     'brand.sub': 'Simulador',
@@ -140,6 +146,12 @@ const STRINGS = {
     'fu.callFlopMulti': 'Tú y {who} ven un flop multiway. El postflop es Fase 2.',
     'fu.callFlop': 'Pagas y ves un flop. El postflop es Fase 2.',
     'way.headsup': 'heads-up', 'way.multiway': 'multiway',
+
+    'action.R4': '4-BET',
+    'title.vs3betPos': '{hero} vs 3-bet de {raiser}',
+    'analyze.vs3bet': 'Frente al 3-bet',
+    'fu.3betModelled': '{who} te hizo 3-bet — tu decisión de 4-bet / pagar / retirarse está abajo.',
+    'trainer.vs3betLine': 'Abres, {who} hace 3-bet — ¿tu jugada?',
   },
 }
 

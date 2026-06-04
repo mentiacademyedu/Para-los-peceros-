@@ -56,6 +56,24 @@ const BB_VS_RFI = {
   LATE:  { raise: '99+, AJs+, A8s, A5s-A2s, KJs+, AJo+, KQo', call: '88-22, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A8o-A2o, K9o+, Q9o+, J9o+, T9o' },
 }
 
+// ---- vs-3-bet baseline model (hero opened, faces a single 3-bet) ---------
+// Keyed by the OPENER's position bucket + whether the opener (hero) is in
+// position vs the 3-bettor. raise = 4-bet range, call = flat. Approximate.
+const VS_3BET_BASE = {
+  EARLY: {
+    IP:  { fourbet: 'QQ+, AKs, A5s, AKo', call: 'JJ-TT, AQs, KQs, AJs' },
+    OOP: { fourbet: 'QQ+, AKs, A5s', call: 'JJ, TT, AQs, AKo' },
+  },
+  MID: {
+    IP:  { fourbet: 'QQ+, AKs, AKo, A5s, A4s', call: 'TT-66, AQs, AJs, KQs, KJs, QJs, JTs, T9s, AQo' },
+    OOP: { fourbet: 'QQ+, AKs, AKo, A5s', call: 'JJ-99, AQs, AJs, KQs' },
+  },
+  LATE: {
+    IP:  { fourbet: 'JJ+, AQs+, AKo, A5s, A4s, KQs', call: 'TT-22, ATs, A9s, KJs, KTs, QTs, JTs, T9s, 98s, 87s, AQo, KQo' },
+    OOP: { fourbet: 'QQ+, AKs, AKo, A5s', call: 'JJ-66, AQs, AJs, KQs, KJs, QJs, JTs, T9s, AQo' },
+  },
+}
+
 const STORAGE_KEY = 'caller.rangeOverrides.v1'
 
 export function loadOverrides() {
@@ -76,6 +94,7 @@ export function clearOverride(key) {
 export function rangeKey(format, hero, context) {
   if (context.type === 'RFI') return `${format}|RFI|${hero}`
   if (context.type === 'vsRFI') return `${format}|vsRFI|${hero}|${context.raiser}`
+  if (context.type === 'vs3betOpener') return `${format}|vs3betOpener|${hero}|${context.raiser}`
   return `${format}|${context.type}|${hero}`
 }
 
@@ -108,14 +127,22 @@ export function getStrategy(format, hero, context) {
       raiseStr = b.raise; callStr = b.call
     }
     approx = true
+  } else if (context.type === 'vs3betOpener') {
+    // hero opened and faces a single 3-bet; bucket by the opener's own seat.
+    const bucket = positionBucket(format, hero)
+    const ip = heroIsIP(format, hero, context.raiser) ? 'IP' : 'OOP'
+    const b = (VS_3BET_BASE[bucket] || VS_3BET_BASE.MID)[ip]
+    raiseStr = b.fourbet; callStr = b.call
+    approx = true
   } else {
-    // vs3bet / multiway not yet modelled
+    // cold vs3bet / multiway not yet modelled
     approx = true
   }
 
   // Title as an i18n key + params (the UI localizes it).
   let titleKey = 'title.rfi', titleParams = { pos: hero }
   if (context.type === 'vsRFI') { titleKey = 'title.vsRFI'; titleParams = { hero, raiser: context.raiser } }
+  else if (context.type === 'vs3betOpener') { titleKey = 'title.vs3betPos'; titleParams = { hero, raiser: context.raiser } }
   else if (context.type === 'vs3bet') { titleKey = 'title.vs3bet'; titleParams = { hero } }
   else if (context.type === 'multiway') { titleKey = 'title.multiway'; titleParams = { hero } }
 
